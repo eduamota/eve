@@ -5,6 +5,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 # Create your models here.
     
 class Location(models.Model):
@@ -26,11 +27,11 @@ class Skill(models.Model):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    employee_number = models.SmallIntegerField()
-    extension = models.SmallIntegerField()
-    location = models.ForeignKey(Location, on_delete=models.CASCADE)
-    label = models.CharField(max_length=150)
-    skill = models.ManyToManyField(Skill)
+    employee_number = models.SmallIntegerField(blank=True)
+    extension = models.SmallIntegerField(blank=True)
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, blank=True)
+    label = models.CharField(max_length=150, blank=True)
+    skill = models.ManyToManyField(Skill, blank=True)
     
     def __str__(self):              # __unicode__ on Python 2
         return str(self.user)
@@ -93,5 +94,8 @@ class Shift_Exception(models.Model):
     start_diff = models.DecimalField(max_digits=1, decimal_places=0)
     end_date_time = models.DateTimeField()
     end_diff = models.DecimalField(max_digits=1, decimal_places=0)
+    actioned_time = models.DateTimeField(default=timezone.now, blank=True)
+    actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
+    approved = models.BooleanField(default=False)
     
     
