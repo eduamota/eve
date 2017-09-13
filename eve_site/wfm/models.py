@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -26,7 +25,7 @@ class Skill(models.Model):
     level = models.DecimalField(max_digits=3	, decimal_places=0)
 
 class Profile(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     employee_number = models.SmallIntegerField()
     extension = models.SmallIntegerField()
     location = models.ForeignKey(Location, on_delete=models.CASCADE)
@@ -35,7 +34,7 @@ class Profile(models.Model):
     
     def __str__(self):              # __unicode__ on Python 2
         return str(self.user)
-'''
+
     @receiver(post_save, sender=User)
     def create_user_profile(sender, instance, created, **kwargs):
         if created:
@@ -44,11 +43,9 @@ class Profile(models.Model):
     @receiver(post_save, sender=User)
     def save_user_profile(sender, instance, **kwargs):
         instance.profile.save()
-'''
+
 class Day_Model(models.Model):
     name = models.CharField(max_length=40)
-    valid_from = models.DateField(default="2017-01-01")
-    valid_to = models.DateField(default="2017-12-31")
     day_start_time = models.TimeField(default='06:00:00')
     day_start_diff = models.DecimalField(max_digits=1, decimal_places=0, default=0)
     day_end_time = models.TimeField(default='14:30:00')
