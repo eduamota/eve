@@ -2,53 +2,100 @@
 from __future__ import unicode_literals
 
 from django.shortcuts import render
-from wfm.models import Shift, Profile, Day_Model, Shift_Exception, Event
+from wfm.models import Shift, Profile, Shift_Exception
 from django.contrib.auth.models import User
-from datetime import timedelta
+from datetime import timedelta, datetime, date
+from django.http import JsonResponse
+
+def last_day_of_month(any_day):
+    next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
+    return next_month - timedelta(days=next_month.day)
 
 # Create your views here.
-def calendar(request):
+def calendar(request):	
+	return render(request, 'shifts/default.html')
+	
+def events(request):
+	
+	schedule = getShifts(request)
+	
+	return JsonResponse(schedule, safe=False)
+	
+def getShifts(request):
 	user = User.objects.get(username = "emota")
 	profile = Profile.objects.get(user = user)
-	shifts = Shift.objects.get(user=profile)
-	day_model = Day_Model.objects.get(shift=shifts)
-	exceptions = Shift_Exception.objects.get(user=profile)
-	event = Event.objects.get(shift_exception=exceptions)
 	
-	working_days={
-		"Sunday": shifts.sunday,
-		"Monday": shifts.monday,
-		"Tuesday": shifts.tuesday,
-		"Wednesday": shifts.wednesday,
-		"Thursday": shifts.thursday,
-		"Friday": shifts.friday,
-		"Saturday": shifts.saturday,									}
+	start = date.today()
+	end = last_day_of_month(date.today())
+	
+	if 'start' in request.GET and request.GET['start']:
+		start = request.GET['start'][:10]
+		start = datetime.strptime(start, '%Y-%m-%d').date()
+		
+	if 'end' in request.GET and request.GET['end']:
+		end = request.GET['end'][:10]
+		end = datetime.strptime(end, '%Y-%m-%d').date()
+	
+	shifts = Shift.objects.filter(user=profile)
+	shifts = shifts.filter(valid_from__lte=end)
+	shifts = shifts.filter(valid_to__gte=start)
 
-	schedule = {}
+	exceptions = Shift_Exception.objects.filter(user=profile)
+	exceptions = exceptions.filter(approved=True)
+	exceptions = exceptions.filter(start_date_time__gte=start)
+	exceptions = exceptions.filter(end_date_time__lt=end)
+
+	schedule = []
+	events = {}
+
+	for e in exceptions:
+		date_e = e.start_date_time.date()
+		ev = {"title": e.event.name, "start":e.start_date_time.strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.event.pk}
+
+		if not(events.has_key(date_e)):
+			events[date_e] = []
+		events[date_e].append(ev)
 	
-	start_date = shifts.valid_from
-	end_date = shifts.valid_to
+	for s in shifts:
+		working_days={
+			"Sunday": s.sunday,
+			"Monday": s.monday,
+			"Tuesday": s.tuesday,
+			"Wednesday": s.wednesday,
+			"Thursday": s.thursday,
+			"Friday": s.friday,
+			"Saturday": s.saturday,	
+		}
+		
+		start_date = s.valid_from
+		end_date = s.valid_to
+		
+		day_start = s.day_model.day_start_time.strftime("%H:%M:%S")
+		day_end = s.day_model.day_end_time.strftime("%H:%M:%S")
+		
+		if start_date < start:
+			start_date = start
+		if end_date > end:
+			end_date = end
+		
+		while start_date <= end_date:
+			
+			dayName = start_date.strftime("%A")
+			
+			start_format = start_date + timedelta(days=int(s.day_model.day_start_diff))
+			start_format = start_format.strftime("%Y-%m-%d")
+			
+			end_format = start_date + timedelta(days=int(s.day_model.day_end_diff))
+			end_format = end_format.strftime("%Y-%m-%d")
+			
+			if start_date in events:
+				for e in events[start_date]:
+					schedule.append(e)
+			
+			if working_days[dayName]:		
+				schedule.append({"start": start_format + " " + day_start, "end": end_format + " " + day_end, "title":user.first_name})
+				
+			start_date = start_date + timedelta(days=1)
 	
-	print event.color
-	
-	day_start = day_model.day_start_time.strftime("%H:%M:%S")
-	day_end = day_model.day_end_time.strftime("%H:%M:%S")
-	
-	while start_date <= end_date:
-		
-		dayName = start_date.strftime("%A")
-		
-		start_format = start_date + timedelta(days=int(day_model.day_start_diff))
-		start_format = start_format.strftime("%Y-%m-%d")
-		
-		end_format = start_date + timedelta(days=int(day_model.day_end_diff))
-		end_format = end_format.strftime("%Y-%m-%d")
-		
-		if working_days[dayName]:		
-			schedule[start_format] = {"start": start_format + "T" + day_start, "end": end_format + "T" + day_end}
-		start_date = start_date + timedelta(days=1)
-		
-	exceptions.start_date_time = exceptions.start_date_time.strftime("%Y-%m-%dT%H:%M:%S")
-	exceptions.end_date_time = exceptions.end_date_time.strftime("%Y-%m-%dT%H:%M:%S")
-	
-	return render(request, 'shifts/default.html', {'shift_name':day_model.name, 'schedule':schedule, 'exceptions':exceptions, 'color':event.color})
+	return schedule	
+	#return JsonResponse(schedule)

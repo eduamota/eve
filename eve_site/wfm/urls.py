@@ -5,4 +5,5 @@ from wfm import views
 
 urlpatterns = [
     url(r'^calendar/$', views.calendar),
+    url(r'^events/$', views.events)
 ]

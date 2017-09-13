@@ -82,7 +82,7 @@ class Event(models.Model):
     group = models.ForeignKey(Event_Group, on_delete=models.CASCADE)
     color = models.CharField(max_length=7)
     text_color = models.CharField(max_length=7)
-    paid = models.BooleanField()
+    paid = models.BooleanField()    
     
     def __str__(self):              # __unicode__ on Python 2
         return self.name

@@ -28,25 +28,34 @@
 				right: 'month,agendaWeek,agendaDay,timelineDay'
 			},
             defaultView: 'timelineDay',
-			defaultDate: '2017-09-12',
-			editable: false,
+			//defaultDate: '2017-09-12',
+			editable: true,
 			eventLimit: true, // allow "more" link when too many events
-			events: [
-                {% for key, day in schedule.items %}
-				{
-					title: '{{ shift_name }}',
-					start: '{{day.start}}',
-					end: '{{day.end}}'
-				},
-                {% endfor %}
+            eventSources: [
+
+                // your event source
                 {
-                    title: '{{ exceptions.event }}',
-                    start: '{{ exceptions.start_date_time }}',
-                    end: '{{ exceptions.end_date_time }}',
-                    color: '{{ color }}'
-                
+                    url: '/events/', // use the `url` property
                 },
-			],
+            ],
+            eventDrop: function(event, delta, revertFunc) {
+
+                //alert(event.title + " was dropped on " + event.start.format());
+
+                if (!confirm("Are you sure about this change?")) {
+                    revertFunc();
+                }
+
+            },
+            eventResize: function(event, delta, revertFunc) {
+
+                alert(event.title + " end is now " + event.end.format());
+
+                if (!confirm("is this okay?")) {
+                    revertFunc();
+                }
+
+            }
 		});
 		
 	});
