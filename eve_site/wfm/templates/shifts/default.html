@@ -39,6 +39,13 @@
 					end: '{{day.end}}'
 				},
                 {% endfor %}
+                {
+                    title: '{{ exceptions.event }}',
+                    start: '{{ exceptions.start_date_time }}',
+                    end: '{{ exceptions.end_date_time }}',
+                    color: '{{ color }}'
+                
+                },
 			],
 		});
 		
