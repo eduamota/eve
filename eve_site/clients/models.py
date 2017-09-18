@@ -31,5 +31,7 @@ class Client(models.Model):
 	phone_numbers = models.ManyToManyField(Phone_Number, blank=True)
 	email_address = models.EmailField(blank=True)
 	chat_float_window = models.CharField(max_length=50, blank=True)
+	additional_comments = models.TextField(blank=True)
 	change_time = models.DateTimeField(default=timezone.now)
 	change_by = models.ForeignKey(User, on_delete=models.CASCADE)
+	
