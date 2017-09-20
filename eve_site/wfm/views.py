@@ -6,19 +6,20 @@ from wfm.models import Shift, Profile, Shift_Exception
 from django.contrib.auth.models import User
 from datetime import timedelta, datetime, date
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
 
 def last_day_of_month(any_day):
     next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
     return next_month - timedelta(days=next_month.day)
 
 # Create your views here.
+@login_required
 def calendar(request):	
 	return render(request, 'shifts/default.html')
 	
 def events(request):
 	
 	schedule = getShifts(request)
-	
 	return JsonResponse(schedule, safe=False)
 	
 def getShifts(request):
