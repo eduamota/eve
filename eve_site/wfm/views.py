@@ -23,7 +23,8 @@ def events(request):
 	return JsonResponse(schedule, safe=False)
 	
 def getShifts(request):
-	user = User.objects.get(username = "emota")
+	current_user = request.user
+	user = User.objects.get(username = current_user.username)
 	profile = Profile.objects.get(user = user)
 	
 	start = date.today()
