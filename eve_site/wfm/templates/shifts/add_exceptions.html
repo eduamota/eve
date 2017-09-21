@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Exceptions{% endblock %}
+
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <form class="col s12" action="/add_job/" method="post">
+            <div class="row">
+                <div class="input-field col s6">
+                    <select multiple id="Agent">
+                        <option value="" disabled selected>Select an Agent</option>
+                        {% for id, agent in agent_list.items %}
+                        <option value={{ id }}>{{ agent }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Select an Agent</label>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="input-field col s6">
+                    <select id="Action">
+                        <option value="" disabled selected>Select an Action</option>
+                        {% for id, event in event_list.items %}
+                        <option value={{ id }}>{{ event }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Select an Action</label>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="input-field col s3">
+                    <input id="from" type="text" class="datepicker">
+                    <label for="from">From Date</label>
+                </div>
+                <div class="input-field col s3">
+                    <input id="to" type="text" class="datepicker">
+                    <label for="to">To Date</label>
+                </div>
+            </div>
+            
+            <div id="meeting" class="hide">
+                <div class="row">
+                    <p class="range-field col s6">
+                        <label for="group_size">Group size (select 1 for individual</label>
+                        <input type="range" id="group_size" min="1" max="10" />
+                    </p>
+                </div>
+                
+                <div class="row">
+                    <div class="input-field col s6">
+                        <textarea id="meeting_notes" class="materialize-textarea"></textarea>
+                        <label for="meeting_notes">Meeting notes</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <button class="btn waves-effect waves-light" type="submit" name="action">Submit
+                    <i class="material-icons right">send</i>
+                </button>
+            </div>
+            
+        </form>
+    </div>
+</div>
+{% endblock content %}
+
+{% block footer_javascript_section %}
+<script>
+    $(document).ready(function() {
+        $('select').material_select();
+        $('.datepicker').pickadate({
+            selectMonths: true, // Creates a dropdown to control month
+            selectYears: 15, // Creates a dropdown of 15 years to control year,
+            today: 'Today',
+            clear: 'Clear',
+            close: 'Ok',
+            closeOnSelect: true // Close upon selecting a date,
+          });
+        $("#Action").on('change', function() {
+            if (this.value == "Schedule_a_Meeting"){
+                $('#meeting').removeClass('hide');
+            }
+            else{
+                $('#meeting').addClass('hide');
+            }
+        });
+    });
+</script>
+{% endblock footer_javascript_section %}

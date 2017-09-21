@@ -24,6 +24,9 @@ class Role(models.Model):
 class Skill(models.Model):
     name = models.CharField(max_length=50)
     level = models.DecimalField(max_digits=3	, decimal_places=0)
+				
+    def __str__(self):              # __unicode__ on Python 2
+        return self.name
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

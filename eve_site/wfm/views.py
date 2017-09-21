@@ -2,23 +2,34 @@
 from __future__ import unicode_literals
 
 from django.shortcuts import render
-from wfm.models import Shift, Profile, Shift_Exception
+from wfm.models import Shift, Profile, Shift_Exception, Event
 from django.contrib.auth.models import User
 from datetime import timedelta, datetime, date
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 
 def last_day_of_month(any_day):
-    next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
-    return next_month - timedelta(days=next_month.day)
+	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
+	return next_month - timedelta(days=next_month.day)
 
+@login_required
+def add_events(request):
+	agents = User.objects.filter(groups__name = 'Agent')
+	agent_list = {0:"All"}
+
+	for a in agents:
+		agent_list[a.pk] = a.first_name + " " + a.last_name
+		
+	event_list = {"Add_Breaks_and_Lunches":"Add Breaks and Lunches","Optimize_Breaks_and_Lunches":"Optimize Breaks and Lunches","Schedule_a_Meeting":"Schedule a Meeting",}
+	
+	return render(request, 'shifts/add_exceptions.html', {'agent_list': agent_list, 'event_list': event_list,})
+	
 # Create your views here.
 @login_required
 def calendar(request):	
 	return render(request, 'shifts/default.html')
 	
 def events(request):
-	
 	schedule = getShifts(request)
 	return JsonResponse(schedule, safe=False)
 	

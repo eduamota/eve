@@ -4,6 +4,7 @@ from django.conf.urls import url
 from wfm import views
 
 urlpatterns = [
-    url(r'^calendar/$', views.calendar),
-    url(r'^events/$', views.events)
+	url(r'^calendar/$', views.calendar),
+	url(r'^events/$', views.events),
+	url(r'^add_events/$', views.add_events)
 ]
