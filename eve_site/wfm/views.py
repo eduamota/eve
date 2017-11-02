@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.shortcuts import render
-from wfm.models import Shift, Profile, Shift_Exception, Event
+from wfm.models import Shift, Profile, Shift_Exception, Job
 from django.contrib.auth.models import User
 from datetime import timedelta, datetime, date
 from django.http import JsonResponse
@@ -13,6 +13,18 @@ def last_day_of_month(any_day):
 	return next_month - timedelta(days=next_month.day)
 
 @login_required
+def add_jobs(request):
+	if 'action' in request.POST and request.POST['action']:
+		j = Job(job_type = request.POST['action'],
+			from_date = request.POST['from'],
+			to_date = request.POST['to'],
+			agents = str(request.POST['agent']), 
+			actioned_by = request.user)
+	print j
+	
+	return render(request, 'shifts/add_job.html')
+
+@login_required
 def add_events(request):
 	agents = User.objects.filter(groups__name = 'Agent')
 	agent_list = {0:"All"}
@@ -20,7 +32,9 @@ def add_events(request):
 	for a in agents:
 		agent_list[a.pk] = a.first_name + " " + a.last_name
 		
-	event_list = {"Add_Breaks_and_Lunches":"Add Breaks and Lunches","Optimize_Breaks_and_Lunches":"Optimize Breaks and Lunches","Schedule_a_Meeting":"Schedule a Meeting",}
+	event_list = {"Add_Breaks_and_Lunches":"Add Breaks and Lunches",
+			"Optimize_Breaks_and_Lunches":"Optimize Breaks and Lunches",
+			"Schedule_a_Meeting":"Schedule a Meeting","Insert Shifts":"Insert Shifts"}
 	
 	return render(request, 'shifts/add_exceptions.html', {'agent_list': agent_list, 'event_list': event_list,})
 	

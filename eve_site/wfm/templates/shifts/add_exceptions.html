@@ -7,9 +7,10 @@
 <div class="container">
     <div class="row">
         <form class="col s12" action="/add_job/" method="post">
+            {% csrf_token %}
             <div class="row">
                 <div class="input-field col s6">
-                    <select multiple id="Agent">
+                    <select multiple id="Agent" name="agent">
                         <option value="" disabled selected>Select an Agent</option>
                         {% for id, agent in agent_list.items %}
                         <option value={{ id }}>{{ agent }}</option>
@@ -21,7 +22,7 @@
             
             <div class="row">
                 <div class="input-field col s6">
-                    <select id="Action">
+                    <select id="Action" name="action">
                         <option value="" disabled selected>Select an Action</option>
                         {% for id, event in event_list.items %}
                         <option value={{ id }}>{{ event }}</option>
@@ -33,11 +34,11 @@
             
             <div class="row">
                 <div class="input-field col s3">
-                    <input id="from" type="text" class="datepicker">
+                    <input id="from" name="from" type="text" class="datepicker">
                     <label for="from">From Date</label>
                 </div>
                 <div class="input-field col s3">
-                    <input id="to" type="text" class="datepicker">
+                    <input id="to" name="to" type="text" class="datepicker">
                     <label for="to">To Date</label>
                 </div>
             </div>
@@ -46,13 +47,13 @@
                 <div class="row">
                     <p class="range-field col s6">
                         <label for="group_size">Group size (select 1 for individual</label>
-                        <input type="range" id="group_size" min="1" max="10" />
+                        <input type="range" id="group_size" name="group_size" min="1" max="10" />
                     </p>
                 </div>
                 
                 <div class="row">
                     <div class="input-field col s6">
-                        <textarea id="meeting_notes" class="materialize-textarea"></textarea>
+                        <textarea id="meeting_notes" name="meeting_notes" class="materialize-textarea"></textarea>
                         <label for="meeting_notes">Meeting notes</label>
                     </div>
                 </div>

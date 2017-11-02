@@ -25,13 +25,14 @@ SECRET_KEY = '1i^nrwl-^3o1+lhdir*a!6@-h9o7p$nq1u+53pe@!&e&hhkhdm'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['LOCALHOST', '192.168.61.63']
 
 
 # Application definition
 
 INSTALLED_APPS = [
     'clients.apps.ClientsConfig',
+    'quality.apps.QualityConfig',
     'wfm.apps.WfmConfig',
     'django.contrib.admin',
     'django.contrib.auth',

@@ -57,6 +57,17 @@ class Day_Model(models.Model):
     
     def __str__(self):              # __unicode__ on Python 2
         return self.name
+								
+class Job(models.Model):
+    job_type = models.CharField(max_length=20)
+    from_date = models.DateTimeField()
+    to_date = models.DateTimeField()
+    agents = models.TextField()
+    actioned_time = models.DateTimeField(default=timezone.now, blank=True)
+    actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
+    
+    def __str__(self):              # __unicode__ on Python 2
+        return "%s %s" % (str(self.job_type), str(self.actioned_time))
 
 class Shift(models.Model):
     user = models.OneToOneField(Profile)
@@ -73,6 +84,18 @@ class Shift(models.Model):
     
     def __str__(self):              # __unicode__ on Python 2
         return "%s %s" % (str(self.user), str(self.day_model))
+								
+class Shift_Sequence(models.Model):
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    start_date_time = models.DateTimeField()
+    start_diff = models.DecimalField(max_digits=1, decimal_places=0)
+    end_date_time = models.DateTimeField()
+    end_diff = models.DecimalField(max_digits=1, decimal_places=0)
+    actioned_time = models.DateTimeField(default=timezone.now, blank=True)
+    actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
+				
+    def __str__(self):
+        return self.user
 
 class Event_Group(models.Model):
     name = models.CharField(max_length=30)

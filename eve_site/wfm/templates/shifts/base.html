@@ -3,7 +3,7 @@
 <html>
     {# Make modifiable head elements #}
     <head>
-        <title>{% block title %}Home {% endblock title %} | CS Ops Eve</title>
+        <title>{% block title %}Home{% endblock title %} | CS Ops</title>
         {% block head_favicon %}
             <link rel="icon" type="image/png"
                   href="{{ STATIC_URL }}images/favicon.ico">
@@ -36,7 +36,7 @@
         <script type="text/javascript" src="{% static 'js/jquery-3.2.1.min.js' %}"></script>
         {% block head_js %}
             {% load static %}
-            <script src="{% static 'js/bootstrap.min.js' %}"></script>
+            <script src="{% static 'js/materialize.min.js' %}"></script>
         {% endblock head_js %}
     </head>
     
@@ -45,8 +45,8 @@
         <div>
             <div class="navbar-fixed">
                 <nav>
-                    <div class="nav-wrapper">
-                        <a href="#" class="brand-logo">CS Ops EVE</a>
+                    <div class="nav-wrapper indigo darken-1">
+                        <a href="#" class="brand-logo">CS Ops Quality Assurance Call Form</a>
                         <ul id="nav-mobile" class="right hide-on-med-and-down">
                             {% if user.is_authenticated %}
                                 <li><a href="/accounts/logout/">Logout</a></li>
