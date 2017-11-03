@@ -35,8 +35,7 @@
         {% endblock head_css %}
         <script type="text/javascript" src="{% static 'js/jquery-3.2.1.min.js' %}"></script>
         {% block head_js %}
-            {% load static %}
-            <script src="{% static 'js/materialize.min.js' %}"></script>
+
         {% endblock head_js %}
     </head>
     
@@ -46,11 +45,12 @@
             <div class="navbar-fixed">
                 <nav>
                     <div class="nav-wrapper indigo darken-1">
-                        <a href="#" class="brand-logo">CS Ops Quality Assurance Call Form</a>
+                        <a href="#" class="brand-logo">CS Ops 360</a>
                         <ul id="nav-mobile" class="right hide-on-med-and-down">
                             {% if user.is_authenticated %}
                                 <li><a href="/accounts/logout/">Logout</a></li>
-                                <li><a href="/calendar/">Calendar</a></li>
+                                <li><a href="/quality/form/new">Quality</a></li>
+                                <li><a href="/quality/wfm/calendar">WFM</a></li>
                             {% else %}
                                 <li><a href="/accounts/login/">Login</a></li>
                             {% endif %}
