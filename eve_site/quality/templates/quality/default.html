@@ -22,6 +22,12 @@
         
     {% endif %}
 
+    {% if messages %}
+        {% for message in messages %}
+            <script>Materialize.toast('{{message}}', 4000, 'green');</script>
+        {% endfor %}
+    {% endif %}
+
     <div class="container">
         
         <form method="post" action="">
@@ -104,7 +110,7 @@
                     <input id="form" name="form" type="text" class="validate">
                 </div>
                 <a class="waves-effect waves-light btn col offset-s2 red" onclick="$('.tap-target').tapTarget('open')">Evaluation legend</a>
-                <a class="waves-effect waves-light btn col offset-s1 green" href="#searchresults">Search Evaluations</a>
+                <a class="waves-effect waves-light btn col offset-s1 green" href="/quality/form/search">Search Evaluations</a>
 
             </div>
                 

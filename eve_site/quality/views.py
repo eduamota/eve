@@ -52,7 +52,12 @@ def formAction(request, form = -1):
 	if request.POST:
 		
 		for key, value in request.POST.items():
-			fields[key] = value
+			pattern = re.compile("^([\d]+)$")
+
+			if pattern.match(key) or key == "evalType" or key == "language" or key == "agentName":
+				dropdowns[key] = value
+			else:
+				fields[key] = value
 		
 		if 'agentName' not in request.POST:
 			errors['agentName'] = "Agent Name is required"
@@ -79,10 +84,11 @@ def formAction(request, form = -1):
 			errors['TotalScore'] = "At least one question needs to be scored"
 			
 		if errors:
-			return render(request, 'quality/default.html', {'errors': errors, 'supervisors': supervisors, 'agents': agents, 'languages': languages})
+			c.close()
+			return render(request, 'quality/default.html', {'errors': errors, 'supervisor': supervisor, 'agents': agents, 'languages': languages})
 		else:
 			#Evaluate if the form was submited vs udated
-			if request.POST['action'] == "submit":
+			if form == -1:
 				try:
 					#save the general details first
 					c.execute("INSERT INTO ops_system.quality_form (agent_id, language, wallet_id, date_of_call, type_of_call, eval_id, recording_file, score) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", [request.POST['agentName'], request.POST['language'], request.POST['walletNumber'], request.POST['dateCall'], request.POST['typeCall'], request.POST['evalName'], request.POST['recordingFile'], request.POST['TotalScore']])
@@ -106,10 +112,10 @@ def formAction(request, form = -1):
 					for key, value in fields.items():
 						c.execute("REPLACE INTO ops_system.quality_responses (form_id, field_name, field_value) VALUES (%s, %s, %s)", [form, key, value])
 					#confirm form has been saved
-					messages.append("<script>Materialize.toast('New record created successfully. The evaluation ID is: " + str(formID) + "', 4000, 'green');</script>")
+					messages.append("Evaluation ID " + str(form) + " has been updated.")
 				except:
 					#send error back that there was an issue
-					messages.append("<script>Materialize.toast('Error unable to save form', 4000, 'red');</script>")
+					errors['general'] = "Error unable to save form"
 	elif int(form) > -1:
 		c.execute("SELECT * FROM ops_system.quality_responses where form_id = %s", [form,])
 		results = c.fetchall()
@@ -122,5 +128,76 @@ def formAction(request, form = -1):
 			else:
 				fields[row[2]] = row[3]
 		
-	
+	c.close()
 	return render(request, 'quality/default.html', {'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
+	
+@login_required()
+
+def formSearch(request):
+	dbFields = ["agent_id", "language", "wallet_id","date_of_call", "type_of_call", "eval_id", "recording_file", "score"]
+	
+	#Setup variables to keep track of variables for options in page
+	agents = {}
+	languages = {}
+	fields = {}
+	dropdowns = {}
+	errors = {}
+	messages = []
+	supervisors = {}
+
+	#Run queries to retrieve the list of agents & language
+	with connection.cursor() as cursor:
+
+		cursor.execute("SELECT id, concat(first_name, ' ', last_name) as name FROM ops_system.otrs_user where title like '%Customer Service Team%' and otrs_enable = 1")
+		result = cursor.fetchall()
+		
+		for agent in result:
+			supervisors[agent[0]] = agent[1]
+					
+		
+		cursor.execute("SELECT id, concat(first_name, ' ', last_name) as name FROM ops_system.otrs_user where title like '%Customer Service Specialist' and otrs_enable = 1")
+		agents_raw = cursor.fetchall()
+		
+		for agent in agents_raw:
+			agents[agent[0]] = agent[1]
+		
+		cursor.execute('SELECT id, name FROM ops_system.language')
+		languages_raw = cursor.fetchall()
+		
+		for language in languages_raw:
+			languages[language[0]] = language[1]	
+	
+	if request.POST:
+		for key, value in request.POST.items():
+			pattern = re.compile("^([\d]+)$")
+
+			if pattern.match(key) or key == "evalType" or key == "language" or key == "agent_id" or key == "eval_id":
+				dropdowns[key] = value
+			else:
+				fields[key] = value
+		queryFilters = ""
+		filters = {}
+		for key, value in request.POST.items():
+			filters[key] = value
+			
+		for k, v in filters.items():
+			if k in dbFields and len(str(v)) > 0:
+				queryFilters = queryFilters +  " " + k + "='" + v + "' and"
+			
+		queryFilters = queryFilters[:-4]
+		query = "SELECT ops_system.quality_form.id, concat(o1.first_name, ' ', o1.last_name) as agent_id, l.name as language, wallet_id, date_of_call, type_of_call, concat(o2.first_name, ' ', o2.last_name) as eval_id, recording_file, score FROM ops_system.quality_form, ops_system.otrs_user o1, ops_system.otrs_user o2, ops_system.language l where agent_id = o1.id and eval_id = o2.id and language = l.id and " + queryFilters
+
+		c = connection.cursor()
+	
+		c.execute(query)
+		
+		results = c.fetchall()
+		forms = {}
+		for result in results:
+			forms[result[0]] = result
+					
+		c.close()
+		print forms
+		return render(request, "quality/search.html", {"results":forms, 'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
+	
+	return render(request, "quality/search.html", {'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
