@@ -123,7 +123,13 @@ def formAction(request, form = -1):
 		for row in results:
 			pattern = re.compile("^([\d]+)$")
 
-			if pattern.match(row[2]) or row[2] == "evalType" or row[2] == "language" or row[2] == "agentName":
+			if pattern.match(row[2]) or row[2] == "evalType" or row[2] == "language" or row[2] == "agentName" or row[2] == "evalName":
+				if row[2] == 'evalName':
+					c.execute("SELECT id, concat(first_name, ' ', last_name) as name FROM ops_system.otrs_user where id = %s", [row[3],])
+					sup = c.fetchone()
+					print sup
+					supervisor[sup[0]] = sup[1]
+					
 				dropdowns[row[2]] = row[3]
 			else:
 				fields[row[2]] = row[3]
