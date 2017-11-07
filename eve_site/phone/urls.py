@@ -11,6 +11,8 @@ from django.conf.urls import url
 from phone import views
 
 urlpatterns = [
+	url(r'^issues/', views.issues),
+	url(r'^dashboard/', views.dashboard),
 	url(r'^agents/$', views.agents),
 	url(r'^queues/$', views.queues),
 	url(r'^agents/(?P<agentid>\w+)', views.agents),

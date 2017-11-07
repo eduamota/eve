@@ -185,3 +185,9 @@ def queues(request, queueid = False):
 				
 	c.close()
 	return render(request, "phone/queues.html", {"agentList":queueList,"queues":userList, "noQueues":notAgent, "agentid": queueid, "messages":messages})
+	
+def issues(request):
+	return render(request, "phone/issues.html")
+
+def dashboard(request):
+	return render(request, "phone/dashboard.html")

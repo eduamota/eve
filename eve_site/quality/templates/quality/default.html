@@ -1,4 +1,4 @@
-{% extends 'quality/base.html' %}
+{% extends 'site/base.html' %}
 
 {% block title %}Quality{% endblock %}
    
@@ -12,7 +12,7 @@
              .pinned {width: 70%; padding-left: 80px}
         </style>
     {% endblock head_css_page %}
-
+{% block pagetitle %}Quality Call Assurance Form{% endblock pagetitle %}
 {% block content %}
     {% if errors %}
         

@@ -1,0 +1,20 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Quality{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+
+    {% endblock head_css_page %}
+{% block pagetitle %}Report an Issue{% endblock pagetitle %}
+{% block content %}
+<iframe id="issueForm" src="about:blank" frameborder="0" width="100%" height="1000"></iframe>
+<script>
+    $(document).ready(function() {
+            document.getElementById('issueForm').src = "https://themesh.wufoo.eu/forms/p1q04j8c0dmlm0o/";
+    });
+</script>
+
+{% endblock content %}

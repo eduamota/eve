@@ -1,4 +1,4 @@
-{% extends 'phone/base.html' %}
+{% extends 'site/base.html' %}
 
 {% block title %}Quality{% endblock %}
    
@@ -8,21 +8,17 @@
     {% block head_css_page %}
 
     {% endblock head_css_page %}
-
+{% block pagetitle %}Queue Management{% endblock pagetitle %}
 {% block content %}
 {% if messages %}
         {% for message, color in messages.items %}
             <script>Materialize.toast('{{message}}', 4000, '{{color}}');</script>
         {% endfor %}
     {% endif %}
+
 	  <div class="container">
 		<form method="post" action="">
             {% csrf_token %}
-		<div class="row">
-			<div class="col 7s">
-				<h2>Phone Queue Management</h2>
-			</div>			
-		</div>
 		<div class="row">
 			<div class="input-field col s2">
 				<select id="queueName" name="queueName">
