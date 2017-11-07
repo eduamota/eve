@@ -21,9 +21,10 @@ from eve_site import views
 urlpatterns = [
 	url(r'^admin/', admin.site.urls),
 	url(r'^dashboard/', views.dashboard),
+	url(r'^phone/', include('phone.urls')),
 	url(r'^accounts/login/$', auth_views.LoginView.as_view(), name="login"),
 	url(r'^accounts/logout/$', auth_views.LogoutView.as_view(), {'next_page': '/accounts/login/',}),
 	url(r'^api/otrs/', include('otrs_connector.urls')),
 	url(r'^quality/', include('quality.urls')),
-	url(r'^wfm/^', include('wfm.urls')),
+	url(r'^wfm/', include('wfm.urls')),
 ]
