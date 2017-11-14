@@ -117,6 +117,7 @@ def formAction(request, form = -1):
 					#send error back that there was an issue
 					errors['general'] = "Error unable to save form"
 	elif int(form) > -1:
+		print form
 		c.execute("SELECT * FROM ops_system.quality_responses where form_id = %s", [form,])
 		results = c.fetchall()
 		

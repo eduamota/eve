@@ -58,11 +58,19 @@ class Day_Model(models.Model):
     def __str__(self):              # __unicode__ on Python 2
         return self.name
 								
+class Job_Status(models.Model):
+    name = models.CharField(max_length=10)
+				
+    def __str__(self):
+       return self.name
+								
 class Job(models.Model):
     job_type = models.CharField(max_length=20)
     from_date = models.DateTimeField()
     to_date = models.DateTimeField()
     agents = models.TextField()
+    status = models.ForeignKey(Job_Status, on_delete=models.CASCADE, blank=True, default=None)
+    parameters = models.CharField(max_length=200, blank=True, default=None)
     actioned_time = models.DateTimeField(default=timezone.now, blank=True)
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
     

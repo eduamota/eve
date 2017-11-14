@@ -55,7 +55,7 @@ def agents(request, agentid = False):
 	messages = {}
 	c = connection.cursor()
 	if request.POST:
-			print request.POST
+			#print request.POST
 			status = ""
 			results = {"status": "error"}
 			if "agentState" in request.POST:
@@ -173,7 +173,7 @@ def queues(request, queueid = False):
 			user[agent['id']] = agent['first_name'] + " " + agent['last_name']
 			
 		queues = callAPI("GET", 'https://api-hw.voxter.com:8443/v1/accounts/{accountID}/queues/' + queueid)
-		print queues
+		#print queues
 		if "agents" in queues["data"]:
 			for value in queues["data"]["agents"]:
 				userList[value] = user[value]

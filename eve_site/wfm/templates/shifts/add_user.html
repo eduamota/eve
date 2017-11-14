@@ -1,6 +1,6 @@
 {% extends 'site/base.html' %}
 
-{% block title %}Add Exceptions{% endblock %}
+{% block title %}Add User{% endblock %}
 
 
 {% block content %}
@@ -27,40 +27,51 @@
             
             <div class="row">
                 <div class="input-field col s6">
-                    <select id="Action" name="action">
-                        <option value="" disabled selected>Select an Action</option>
-                        {% for id, event in event_list.items %}
-                        <option value={{ id }}>{{ event }}</option>
+                    <select multiple id="skill" name="skill">
+                        <option value="" disabled selected>Select a skill</option>
+                        {% for s in skills %}
+                        <option value={{ s.id }}>{{ s.name }}</option>
                         {% endfor %}
                     </select>
-                    <label>Select an Action</label>
+                    <label>Select an Skill</label>
+                </div>
+            </div>
+            
+           <div class="row">
+                <div class="input-field col s6">
+                    <select id="location" name="location">
+                        <option value="" disabled selected>Select a location</option>
+                        {% for l in locations %}
+                        <option value={{ l.id }}>{{ l.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Select a Location</label>
                 </div>
             </div>
             
             <div class="row">
-                <div class="input-field col s3">
-                    <input id="from" name="from" type="text" class="datepicker">
-                    <label for="from">From Date</label>
-                </div>
-                <div class="input-field col s3">
-                    <input id="to" name="to" type="text" class="datepicker">
-                    <label for="to">To Date</label>
+                <div class="input-field col s6">
+                    <select multiple id="group" name="group">
+                        <option value="" disabled selected>Select a group</option>
+                        {% for k, l in groups.items %}
+                        <option value={{ k }}>{{ l }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Select a group</label>
                 </div>
             </div>
             
-            <div id="meeting" class="hide">
-                <div class="row">
-                    <p class="range-field col s6">
-                        <label for="group_size">Group size (select 1 for individual</label>
-                        <input type="range" id="group_size" name="group_size" min="1" max="10" />
-                    </p>
+            <div class="row">
+                <div class="input-field col s6">
+                  <input id="pwd" name="pwd" type="password" class="validate">
+                  <label for="pwd">Password</label>
                 </div>
-                
-                <div class="row">
-                    <div class="input-field col s6">
-                        <textarea id="meeting_notes" name="meeting_notes" class="materialize-textarea"></textarea>
-                        <label for="meeting_notes">Meeting notes</label>
-                    </div>
+            </div>
+            
+            <div class="row">
+                <div class="input-field col s6">
+                  <input id="labels" type="text" class="validate">
+                  <label for="labels">Labels</label>
                 </div>
             </div>
             
