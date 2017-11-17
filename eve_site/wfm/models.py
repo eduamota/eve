@@ -54,9 +54,10 @@ class Day_Model(models.Model):
     day_start_diff = models.DecimalField(max_digits=1, decimal_places=0, default=0)
     day_end_time = models.TimeField(default='14:30:00')
     day_end_diff = models.DecimalField(max_digits=1, decimal_places=0, default=0)
+    time_zone = models.CharField(max_length=50, blank=True)
     
     def __str__(self):              # __unicode__ on Python 2
-        return self.name
+        return (self.name + " " + self.time_zone)
 								
 class Job_Status(models.Model):
     name = models.CharField(max_length=10)

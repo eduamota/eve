@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from wfm.models import *
 from django.contrib.auth.models import User, Group
 from datetime import timedelta, datetime, date
@@ -10,6 +10,8 @@ from django.contrib.auth.decorators import login_required
 from .tasks import runsaveShift, runsaveBreaks, runsaveShiftBreaks
 from django.db import connection
 from django.db.models import Q
+import pytz
+from datetime import datetime
 
 def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
@@ -40,6 +42,9 @@ def scheduler(request, action = False):
 		
 		start_date = datetime.strptime(start_date, '%Y-%m-%d')
 		end_date = datetime.strptime(end_date, '%Y-%m-%d')
+		
+		start_date = start_date.astimezone('UTC')
+		end_date = end_date.astimezone('UTC')
 		
 		st = Job_Status.objects.get(name="Running")
 		
@@ -75,6 +80,9 @@ def scheduler(request, action = False):
 def schedule_job(request):
 	agents = User.objects.filter(groups__name = 'Agent')
 	agent_list = {0:"All"}
+
+	tz = pytz.timezone(request.user.profile.location.iso_name)
+	
 	messages = {}
 	for a in agents:
 		agent_list[a.pk] = a.first_name + " " + a.last_name
@@ -92,7 +100,10 @@ def schedule_job(request):
 		agent = request.POST.getlist('agent')
 		
 		start_date = datetime.strptime(start_date[0], '%d %B, %Y')
+		start_date = tz.localize(start_date)
+		
 		end_date = datetime.strptime(end_date[0], '%d %B, %Y')
+		end_date = tz.localize(end_date)
 		
 		st = Job_Status.objects.get(name="Queued")		
 		
@@ -116,6 +127,15 @@ def schedule_job(request):
 	
 	return render(request, 'shifts/add_exceptions.html', {'agent_list': agent_list, 'event_list': event_list, "messages": messages})
 	
+
+
+def set_timezone(request):
+    if request.method == 'POST':
+        request.session['django_timezone'] = request.POST['timezone']
+        return redirect('/')
+    else:
+        return render(request, 'shifts/tz.html', {'timezones': pytz.common_timezones})	
+
 # Create your views here.
 @login_required
 def calendar(request):	
@@ -133,26 +153,25 @@ def team_events(request, sDate = False, eDate = False):
 	schedule = getTeamShifts(request)
 	return JsonResponse(schedule, safe=False)
 
-def saveEvents(request, sDate = False, eDate = False):
-	schedule = saveShifts(request, sDate, eDate, "emota",  request.user.username)
-	return JsonResponse(schedule, safe=False)
 	
 def getShifts(request):
 	current_user = request.user
 	user = User.objects.get(username = current_user.username)
 	profile = Profile.objects.get(user = user)
 	
-	start = date.today()
-	end = last_day_of_month(date.today())
+	tzo = pytz.timezone(request.user.profile.location.iso_name)
+	
+	start = datetime.now(tzo)
+	end = last_day_of_month(datetime.now(tzo))
 	
 	if 'start' in request.GET and request.GET['start']:
-		start = request.GET['start'][:10]
-		start = datetime.strptime(start, '%Y-%m-%d').date()
+		start = request.GET['start']
+		start = tzo.localize(datetime.strptime(start, '%Y-%m-%dT%H:%M:%S'))
 		
 		
 	if 'end' in request.GET and request.GET['end']:
-		end = request.GET['end'][:10]
-		end = datetime.strptime(end, '%Y-%m-%d').date()
+		end = request.GET['end']
+		end = tzo.localize(datetime.strptime(end, '%Y-%m-%dT%H:%M:%S'))
 
 	exceptions = Shift_Exception.objects.filter(user=profile)
 	exceptions = exceptions.filter(approved=True)
@@ -163,32 +182,33 @@ def getShifts(request):
 	events = {}
 
 	for e in exceptions:
-		date_e = e.start_date_time.strftime("%Y-%m-%d")
-		ev = {"title": e.event.name, "start":e.start_date_time.strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk}
+		date_e = e.start_date_time.astimezone(tzo).strftime("%Y-%m-%d")
+		ev = {"title": e.event.name, "start":e.start_date_time.astimezone(tzo).strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.astimezone(tzo).strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk}
 
 		if not(events.has_key(date_e)):
 			events[date_e] = []
 		events[date_e].append(ev)
 	
-	while start <= end:
-		start_format = start.strftime("%Y-%m-%d")
+	while start < end:
+		start_query = start
+		start_format = start.astimezone(tzo).strftime("%Y-%m-%d")
+		end_query = start_query + timedelta(days=1)
 		
 		if start_format in events:
 			for e in events[start_format]:
 				schedule.append(e)
 		
-		sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__date = start_format) |  Q(end_date_time__date = start_format) )			
+		sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__range = (start_query, end_query)) |  Q(end_date_time__range = (start_query, end_query)) )	
+		
 		for sh1 in sh_f:
-			start_d = sh1.start_date_time
-			end_d = sh1.end_date_time
+			start_d = sh1.start_date_time.astimezone(tzo)
+			end_d = sh1.end_date_time.astimezone(tzo)
 
-			if sh1.start_date_time.date() < start:
-				start_d = sh1.end_date_time.replace(hour=0, minute=0)
-			if sh1.end_date_time.date() > start:
-				end_d = sh1.start_date_time.replace(hour=0, minute=0)
+			if start_d < start:
+				start_d = start
+			if end_d > (start + timedelta(days=1)):
+				end_d = (start + timedelta(days=1))
 			
-			if sh1.start_date_time.date() < sh1.end_date_time.date():
-				start_d = end_date_time.date()
 			schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift"})
 			
 		start = start + timedelta(days=1)
@@ -218,9 +238,10 @@ def getTeamShifts(request):
 	all_users = User.objects.filter(groups__name = 'Agent')
 	
 	schedule = []
+
+	tz = pytz.timezone(request.user.profile.location.iso_name)	
 	
 	for us in all_users:
-		
 		
 		profile = Profile.objects.get(user = us)
 		start = date.today()
@@ -228,131 +249,55 @@ def getTeamShifts(request):
 		
 		if 'start' in request.GET and request.GET['start']:
 			start = request.GET['start'][:10]
-			start = datetime.strptime(start, '%Y-%m-%d').date()
+			start = tz.localize(datetime.strptime(start, '%Y-%m-%d'))
 			
 			
 		if 'end' in request.GET and request.GET['end']:
 			end = request.GET['end'][:10]
-			end = datetime.strptime(end, '%Y-%m-%d').date()
+			end = tz.localize(datetime.strptime(end, '%Y-%m-%d'))
 	
 		exceptions = Shift_Exception.objects.filter(user=profile)
 		exceptions = exceptions.filter(approved=True)
 		exceptions = exceptions.filter(start_date_time__gte=start)
-		exceptions = exceptions.filter(end_date_time__lt=end)
+		exceptions = exceptions.filter(end_date_time__lte=end)
 	
-		
 		events = {}
 	
 		for e in exceptions:
-			date_e = e.start_date_time.strftime("%Y-%m-%d")
-			ev = {"title": e.event.name, "start":e.start_date_time.strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk, "resourceId": str(us.pk)}
+			date_e = e.start_date_time.astimezone(tz).strftime("%Y-%m-%d")
+			ev = {"title": e.event.name, "start":e.start_date_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk, "resourceId": str(us.pk)}
 	
 			if not(events.has_key(date_e)):
 				events[date_e] = []
 			events[date_e].append(ev)
 		
-		while start <= end:
+		while start < end:
+			start_query = start
 			start_format = start.strftime("%Y-%m-%d")
+			end_query = start_query + timedelta(days=1)
+			end_query = end_query
 			
 			if start_format in events:
 				for e in events[start_format]:
 					schedule.append(e)
 			
-			sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__date = start_format) |  Q(end_date_time__date = start_format) )		
+			sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__range = (start_query, end_query)) |  Q(end_date_time__range = (start_query, end_query)) )	
 			for sh1 in sh_f:
-				start_d = sh1.start_date_time
-				end_d = sh1.end_date_time
-
-				if sh1.start_date_time.date() < start:
-					start_d = sh1.end_date_time.replace(hour=0, minute=0)
-				if sh1.end_date_time.date() > start:
-					end_d = sh1.start_date_time.replace(hour=0, minute=0)
-
-				schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift", "resourceId": str(us.pk)})
+				start_d = sh1.start_date_time.astimezone(tz)
+				end_d = sh1.end_date_time.astimezone(tz)
+	
+				if start_d.date() < start.date():
+					start_d = start.replace(hour=0, minute=0)
+				if end_d.date() > start.date():
+					end_d = end_d.replace(hour=0, minute=0)
+				
+				schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift", "id":sh1.pk, "resourceId": str(us.pk)})
 				
 			start = start + timedelta(days=1)
+		
+		
 	
 	return schedule
-	
-def saveShifts(sDate, eDate, cUser, aUser):
-	user = User.objects.get(username = cUser)
-	auser = User.objects.get(username = aUser)
-	profile = Profile.objects.get(user = user)
-	
-	start = date.today()
-	end = last_day_of_month(date.today())
-	
-	if sDate and eDate:
-		try:
-			start = datetime.strptime(sDate, '%Y-%m-%d').date()
-		except:
-			start = date.today()
-			
-		try:
-			end = datetime.strptime(eDate, '%Y-%m-%d').date()
-		except:
-			end = last_day_of_month(date.today())
-	
-	shifts = Shift.objects.filter(user=profile)
-	shifts = shifts.filter(valid_from__lte=end)
-	shifts = shifts.filter(valid_to__gte=start)
-
-	exceptions = Shift_Exception.objects.filter(user=profile)
-	exceptions = exceptions.filter(approved=True)
-	exceptions = exceptions.filter(start_date_time__gte=start)
-	exceptions = exceptions.filter(end_date_time__lt=end)
-
-	response ={}
-	
-	for s in shifts:
-		working_days={
-			"Sunday": s.sunday,
-			"Monday": s.monday,
-			"Tuesday": s.tuesday,
-			"Wednesday": s.wednesday,
-			"Thursday": s.thursday,
-			"Friday": s.friday,
-			"Saturday": s.saturday,	
-		}
-		
-		start_date = s.valid_from
-		end_date = s.valid_to
-		
-		day_start = s.day_model.day_start_time.strftime("%H:%M:%S")
-		day_end = s.day_model.day_end_time.strftime("%H:%M:%S")
-		
-		if start_date < start:
-			start_date = start
-		if end_date > end:
-			end_date = end
-		
-		while start_date <= end_date:
-			
-			dayName = start_date.strftime("%A")
-			
-			start_format = start_date + timedelta(days=int(s.day_model.day_start_diff))
-			start_format = start_format.strftime("%Y-%m-%d")
-			
-			end_format = start_date + timedelta(days=int(s.day_model.day_end_diff))
-			end_format = end_format.strftime("%Y-%m-%d")
-			
-			if working_days[dayName]:
-				try:
-					stDate = datetime.strptime(start_format + " " + day_start, '%Y-%m-%d %H:%M:%S')
-					etDate = datetime.strptime(end_format + " " + day_end, '%Y-%m-%d %H:%M:%S')
-					sh_f = Shift_Sequence.objects.filter(start_date_time__date= start_format).filter(user = profile)
-					for sh1 in sh_f:
-						sh1.delete()
-					sh = Shift_Sequence(user = profile, start_date_time = stDate, start_diff = int(s.day_model.day_start_diff), end_date_time = etDate, end_diff = int(s.day_model.day_end_diff), actioned_by = auser)
-					sh.save()
-					
-				except:
-					response = {"status": "error saving " + stDate + " for " + user.username}
-					return response
-			start_date = start_date + timedelta(days=1)
-	response = {"status": "sucess"}
-	
-	return response
 	
 def addAgent(request):
 	c = connection.cursor()

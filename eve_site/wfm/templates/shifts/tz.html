@@ -1,0 +1,27 @@
+{% extends 'shifts/base.html' %}
+{% block title %}Set TimeZone{% endblock %}
+
+{% block content %}
+    {% load tz %}
+    {% get_current_timezone as TIME_ZONE %}
+<div class="row">
+    <form action="" method="POST" class="col s4">
+        {% csrf_token %}
+        <label>{{ TIME_ZONE }}</label>
+        <label for="timezone">Time zone:</label>
+        <select name="timezone">
+            {% for tz in timezones %}
+            <option value="{{ tz }}"{% if tz == TIME_ZONE %} selected{% endif %}>{{ tz }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Set" />
+    </form>
+</div>
+{% endblock content %}
+{% block footer_javascript_section %}
+<script>
+    $(document).ready(function() {
+        $('select').material_select();
+    });
+</script>
+{% endblock footer_javascript_section %}

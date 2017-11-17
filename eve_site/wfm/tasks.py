@@ -53,6 +53,7 @@ def runsaveShiftBreaks():
 		except:
 			jb.status = stf
 			jb.save()
+	calculateSLA(sDate, eDate)
 
 @shared_task
 def runsaveShift():		
@@ -88,6 +89,8 @@ def runsaveShift():
 			jb.status = stf
 			jb.save()
 			
+	calculateSLA(sDate, eDate)
+			
 def saveShifts(sDate, eDate, cUser, aUser):
 	#print("saving shifts")
 	user = User.objects.get(username = cUser)
@@ -102,6 +105,7 @@ def saveShifts(sDate, eDate, cUser, aUser):
 	shifts = Shift.objects.filter(user=profile)
 	shifts = shifts.filter(valid_from__lte=end)
 	shifts = shifts.filter(valid_to__gte=start)
+
 	
 	for s in shifts:
 		working_days={
@@ -149,7 +153,7 @@ def saveShifts(sDate, eDate, cUser, aUser):
 					#return response
 			start_date = start_date + timedelta(days=1)
 	#print("running SLA")
-	calculateSLA(sDate, eDate)
+	
 			
 def calculateSLA(sDate, eDate):
 	
@@ -161,12 +165,14 @@ def calculateSLA(sDate, eDate):
 
 
 	shifts = Shift_Sequence.objects.filter(start_date_time__date__gte = start_format).filter(start_date_time__date__lte = end_format)
-
+	
 	cur = connection.cursor()
-	cur.execute("update forecast_call_forecast set actual_agents_scheduled = 0 where date between %s and %s", (start_format, end_format))
+	cur.execute("update forecast_call_forecast set actual_agents_scheduled = 0 where date(`date`) >= %s and date(`date`) <= %s", (start_format, end_format))
 	
 	for s in shifts:
 		user_profile = s.user
+		
+		ex_list = Shift_Exception.objects.filter(shift_sequence = s)
 		
 		skills = user_profile.skill.all()
 
@@ -190,14 +196,18 @@ def calculateSLA(sDate, eDate):
 			start_d = s.start_date_time
 			end_d = s.end_date_time
 			
-			while start_d < end_d:				
-				start_d_f = start_d.strftime("%Y-%m-%d")				
-				start_t_f = start_d.strftime("%H:%M:%S")
+			start_d_f = start_d.strftime("%Y-%m-%d %H:%M:%S")								
+			end_d_f = end_d - timedelta(minutes=15)
+			end_d_f = end_d_f.strftime("%Y-%m-%d %H:%M:%S")	
+			
+			cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` + %s)  WHERE `date` >= %s and `date` <= %s and queue = %s", (ratio, start_d_f,  end_d_f, sk) )
+			
+			for ex in ex_list:
+				start_d_f = ex.start_date_time.strftime("%Y-%m-%d %H:%M:%S")
+				end_d_f = ex.end_date_time - timedelta(minutes=15)
+				end_d_f = end_d_f.strftime("%Y-%m-%d %H:%M:%S")
+				cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` - %s)  WHERE `date` >= %s and `date` <= %s and queue = %s", (ratio, start_d_f,  end_d_f, sk) )
 				
-				
-				cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` + %s)  WHERE `date` = %s and `interval_start` = %s and queue = %s", (ratio, start_d_f, start_t_f, sk) )
-				
-				start_d = start_d + timedelta(minutes=30)
 	cur.close()
 
 @shared_task
@@ -233,8 +243,13 @@ def runsaveBreaks():
 		except:
 			jb.status = stf
 			jb.save()
+			
+	calculateSLA(sDate, eDate)
 	
 def saveBreaks(sDate, eDate, cUser, aUser):
+	
+	cur = connection.cursor()
+		
 	cuuser = User.objects.get(username = cUser)
 	auser = User.objects.get(username = aUser)
 	profile = Profile.objects.get(user = cuuser)
@@ -274,29 +289,26 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		b_date = business_day.date()
 		b_date_format = b_date.strftime("%Y-%m-%d")
 		
-		b_time_start = business_day + timedelta(minutes=30)
-		b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
-		
+		b_time_start = business_day + timedelta(minutes=30)		
 		b_time_end = business_day + timedelta(minutes=150)
-		b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")
+		
+		duration = 15
 
-		bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start_format, b_time_end_format)
+		bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration)
 		
-		b_time_start = business_day + timedelta(minutes=210)
-		b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
-		
+		b_time_start = business_day + timedelta(minutes=210)		
 		b_time_end = business_day + timedelta(minutes=300)
-		b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")		
+		
+		duration = 30
 
-		bestTimeLunch = findBestTime(ski, b_date_format, b_time_start_format, b_time_end_format)
+		bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration)
 		
-		b_time_start = business_day + timedelta(minutes=360)
-		b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
-		
+		b_time_start = business_day + timedelta(minutes=360)		
 		b_time_end = business_day + timedelta(minutes=435)
-		b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")
 		
-		bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start_format, b_time_end_format)
+		duration = 15
+		
+		bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration)
 		
 		ev_b = Event.objects.get(name="Break")
 		ev_l = Event.objects.get(name="Lunch")
@@ -324,9 +336,18 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, approved = True)
 		s_ex_l.save()
 		
+	cur.close()
 		
-def findBestTime(ski, b_date_format, b_time_start_format, b_time_end_format):
+		
+def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration):
 	c = connection.cursor()
+	
+	b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
+	
+	b_time_end_format = b_time_end + timedelta(minutes = (duration-15))
+	b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")
+	
+	intervals = duration / 15
 
 	diff = {}
 	
@@ -337,10 +358,27 @@ def findBestTime(ski, b_date_format, b_time_start_format, b_time_end_format):
 		for r in results:
 			if r[0] not in diff:
 				diff[r[0]] = 0
-			
-			diff[r[0]] = diff[r[0]] + float(r[1])
+				
+		for r in results:
+			i = 0
+			total = 0
+			while i < intervals:
+				m = 15 * i
+				date_in = r[0] + timedelta(minutes=m)
+				if date_in in diff:
+					total = total + float(r[1])
+				else:
+					if r[0] in diff:
+						print date_in
+						print r[0]
+						del diff[r[0]]
+				i += 1
+				
+			if r[0] in diff:
+				diff[r[0]] = diff[r[0]] + total
 	
 	
+		
 	besttime = ""
 	lowestAgents = -1
 

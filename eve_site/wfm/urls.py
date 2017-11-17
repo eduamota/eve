@@ -10,8 +10,8 @@ urlpatterns = [
 	url(r'^resources/$', views.getResources),
 	url(r'^events/$', views.events),
 	url(r'^user/add$', views.addAgent),
-	url(r'^saveevents/(?P<sDate>[-\d]+)/(?P<eDate>[-\d]+)$', views.saveEvents),
 	url(r'^schedule_job/$', views.schedule_job),
 	url(r'^scheduler/(?P<action>[a-z]+)$', views.scheduler),
 	url(r'^add_job/$', views.add_jobs),
+	url(r'^settz/$', views.set_timezone),
 ]
