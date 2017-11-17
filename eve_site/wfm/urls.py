@@ -6,6 +6,8 @@ from wfm import views
 urlpatterns = [
 	url(r'^calendar/team$', views.calendar_team),
 	url(r'^calendar/$', views.calendar),
+	url(r'^team_events/$', views.team_events),
+	url(r'^resources/$', views.getResources),
 	url(r'^events/$', views.events),
 	url(r'^user/add$', views.addAgent),
 	url(r'^saveevents/(?P<sDate>[-\d]+)/(?P<eDate>[-\d]+)$', views.saveEvents),

@@ -19,11 +19,6 @@
             font-size: 14px;
         }
 
-        #calendar {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-
     </style>
     {% endblock head_css_page %}
 
@@ -46,13 +41,16 @@
 			//defaultDate: '2017-09-12',
 			editable: true,
 			eventLimit: true, // allow "more" link when too many events
-            eventSources: [
-
+            aspectRatio: 2,
+            resources: {
+                url: '/wfm/resources/',
+                type: 'GET'
+              },
+            events: 
                 // your event source
                 {
-                    url: '/wfm/events/', // use the `url` property
+                    url: '/wfm/team_events/', // use the `url` property
                 },
-            ],
             eventDrop: function(event, delta, revertFunc) {
 
                 //alert(event.title + " was dropped on " + event.start.format());

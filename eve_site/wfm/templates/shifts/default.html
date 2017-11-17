@@ -19,11 +19,6 @@
             font-size: 14px;
         }
 
-        #calendar {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-
     </style>
     {% endblock head_css_page %}
 
@@ -45,6 +40,7 @@
 			},
             defaultView: 'timelineDay',
 			//defaultDate: '2017-09-12',
+            aspectRatio: 2,
 			editable: true,
 			eventLimit: true, // allow "more" link when too many events
             eventSources: [

@@ -7,7 +7,7 @@ from django.contrib.auth.models import User, Group
 from datetime import timedelta, datetime, date
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from .tasks import runsaveShift, runsaveBreaks
+from .tasks import runsaveShift, runsaveBreaks, runsaveShiftBreaks
 from django.db import connection
 from django.db.models import Q
 
@@ -82,7 +82,8 @@ def schedule_job(request):
 	event_list = {"Add_Breaks_and_Lunches":"Add Breaks and Lunches",
 			"Optimize_Breaks_and_Lunches":"Optimize Breaks and Lunches",
 			"Schedule_a_Meeting":"Schedule a Meeting", 
-			"Insert_Shifts":"Insert Shifts"}
+			"Insert_Shifts":"Insert Shifts",
+			"Insert_Shifts_&_Breaks":"Insert Shifts and add Breaks"}
 			
 	if 'action' in request.POST:
 		actions = request.POST.getlist('action')
@@ -95,20 +96,23 @@ def schedule_job(request):
 		
 		st = Job_Status.objects.get(name="Queued")		
 		
-		j = Job(job_type = actions[0],
-			from_date = start_date,
-			to_date = end_date,
-			agents = agent[0],
-			status = st,
-			actioned_by = request.user)
-		
-		j.save()
+		for a in agent:
+			j = Job(job_type = actions[0],
+				from_date = start_date,
+				to_date = end_date,
+				agents = a,
+				status = st,
+				actioned_by = request.user)
+			
+			j.save()
 		messages['The job ' + request.POST['action'] + ' has been saved'] = "green"
 		
 		if actions[0] == 'Insert_Shifts':
 			runsaveShift.delay()
 		elif actions[0] == 'Add_Breaks_and_Lunches':
 			runsaveBreaks.delay()
+		elif actions[0] == 'Insert_Shifts_&_Breaks':
+			runsaveShiftBreaks.delay()
 	
 	return render(request, 'shifts/add_exceptions.html', {'agent_list': agent_list, 'event_list': event_list, "messages": messages})
 	
@@ -119,10 +123,14 @@ def calendar(request):
 	
 @login_required
 def calendar_team(request):	
-	return render(request, 'shifts/team_calendar.html')
+	return render(request, 'shifts/calendar_team.html')
 	
 def events(request, sDate = False, eDate = False):
 	schedule = getShifts(request)
+	return JsonResponse(schedule, safe=False)
+	
+def team_events(request, sDate = False, eDate = False):
+	schedule = getTeamShifts(request)
 	return JsonResponse(schedule, safe=False)
 
 def saveEvents(request, sDate = False, eDate = False):
@@ -156,7 +164,7 @@ def getShifts(request):
 
 	for e in exceptions:
 		date_e = e.start_date_time.strftime("%Y-%m-%d")
-		ev = {"title": e.event.name, "start":e.start_date_time.strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.event.pk}
+		ev = {"title": e.event.name, "start":e.start_date_time.strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk}
 
 		if not(events.has_key(date_e)):
 			events[date_e] = []
@@ -169,11 +177,100 @@ def getShifts(request):
 			for e in events[start_format]:
 				schedule.append(e)
 		
-		sh_f = Shift_Sequence.objects.filter(start_date_time__date = start_format).filter(user = profile)			
+		sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__date = start_format) |  Q(end_date_time__date = start_format) )			
 		for sh1 in sh_f:
-			schedule.append({"start": sh1.start_date_time.strftime("%Y-%m-%d %H:%M:%S"), "end": sh1.end_date_time.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift"})
+			start_d = sh1.start_date_time
+			end_d = sh1.end_date_time
+
+			if sh1.start_date_time.date() < start:
+				start_d = sh1.end_date_time.replace(hour=0, minute=0)
+			if sh1.end_date_time.date() > start:
+				end_d = sh1.start_date_time.replace(hour=0, minute=0)
+			
+			if sh1.start_date_time.date() < sh1.end_date_time.date():
+				start_d = end_date_time.date()
+			schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift"})
 			
 		start = start + timedelta(days=1)
+	
+	return schedule
+	
+def getResources(request):
+	all_users = User.objects.filter(groups__name = 'Agent')
+	schedule = []
+	resource_cc = {}
+	resource_cc['id'] = "CC"
+	resource_cc['title'] = "Contact Center"
+	schedule.append(resource_cc)
+	
+	for us in all_users:
+		
+		resource_cc = {}
+		resource_cc['id'] = str(us.pk)
+		resource_cc['title'] = us.first_name + " " + us.last_name
+		resource_cc['parentId'] = "CC"
+		
+		schedule.append(resource_cc)
+		
+	return JsonResponse(schedule, safe=False)
+	
+def getTeamShifts(request):
+	all_users = User.objects.filter(groups__name = 'Agent')
+	
+	schedule = []
+	
+	for us in all_users:
+		
+		
+		profile = Profile.objects.get(user = us)
+		start = date.today()
+		end = last_day_of_month(date.today())
+		
+		if 'start' in request.GET and request.GET['start']:
+			start = request.GET['start'][:10]
+			start = datetime.strptime(start, '%Y-%m-%d').date()
+			
+			
+		if 'end' in request.GET and request.GET['end']:
+			end = request.GET['end'][:10]
+			end = datetime.strptime(end, '%Y-%m-%d').date()
+	
+		exceptions = Shift_Exception.objects.filter(user=profile)
+		exceptions = exceptions.filter(approved=True)
+		exceptions = exceptions.filter(start_date_time__gte=start)
+		exceptions = exceptions.filter(end_date_time__lt=end)
+	
+		
+		events = {}
+	
+		for e in exceptions:
+			date_e = e.start_date_time.strftime("%Y-%m-%d")
+			ev = {"title": e.event.name, "start":e.start_date_time.strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk, "resourceId": str(us.pk)}
+	
+			if not(events.has_key(date_e)):
+				events[date_e] = []
+			events[date_e].append(ev)
+		
+		while start <= end:
+			start_format = start.strftime("%Y-%m-%d")
+			
+			if start_format in events:
+				for e in events[start_format]:
+					schedule.append(e)
+			
+			sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__date = start_format) |  Q(end_date_time__date = start_format) )		
+			for sh1 in sh_f:
+				start_d = sh1.start_date_time
+				end_d = sh1.end_date_time
+
+				if sh1.start_date_time.date() < start:
+					start_d = sh1.end_date_time.replace(hour=0, minute=0)
+				if sh1.end_date_time.date() > start:
+					end_d = sh1.start_date_time.replace(hour=0, minute=0)
+
+				schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift", "resourceId": str(us.pk)})
+				
+			start = start + timedelta(days=1)
 	
 	return schedule
 	

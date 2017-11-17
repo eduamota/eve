@@ -19,6 +19,42 @@ def last_day_of_month(any_day):
 	return next_month - timedelta(days=next_month.day)
 
 @shared_task
+def runsaveShiftBreaks():
+	
+	st = Job_Status.objects.get(name="Queued")
+	sr = Job_Status.objects.get(name="Running")
+	sts = Job_Status.objects.get(name="Success")
+	stf = Job_Status.objects.get(name="Failed")
+	j = Job.objects.filter(status = st).filter(job_type = "Insert_Shifts_&_Breaks")
+	
+	for jb in j:
+		jb.status = sr
+		jb.save()
+		sDate = jb.from_date
+		eDate = jb.to_date
+		cUser = jb.agents
+		aUser = jb.actioned_by
+		aUser = aUser.username
+		
+		try:
+			if int(cUser) == 0:
+				agents = User.objects.filter(groups__name = 'Agent')
+				for agent in agents:
+					saveShifts(sDate, eDate, agent.username, aUser)
+					saveBreaks(sDate, eDate, agent.username, aUser)
+			else:
+				cUser = User.objects.get(pk = cUser)
+				cUser = cUser.username
+			
+				saveShifts(sDate, eDate, cUser, aUser)
+				saveBreaks(sDate, eDate, cUser, aUser)
+			jb.status = sts
+			jb.save()
+		except:
+			jb.status = stf
+			jb.save()
+
+@shared_task
 def runsaveShift():		
 	
 	st = Job_Status.objects.get(name="Queued")
@@ -257,7 +293,7 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		b_time_start = business_day + timedelta(minutes=360)
 		b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
 		
-		b_time_end = business_day + timedelta(minutes=480)
+		b_time_end = business_day + timedelta(minutes=435)
 		b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")
 		
 		bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start_format, b_time_end_format)
@@ -266,34 +302,26 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		ev_l = Event.objects.get(name="Lunch")
 		
 		
-		s_ex_del_list = Shift_Exception.objects.filter(start_date_time__date = b_date_format)
+		s_ex_del_list = Shift_Exception.objects.filter(shift_sequence = s).filter(user = profile)
 		for s_ex_1 in s_ex_del_list:
-			s_ex_1.delete()
-			
-		s_ex_del_list_1 = Shift_Exception.objects.filter(start_date_time__date = b_date_format)
-		for s_ex_1 in s_ex_del_list_1:
-			s_ex_1.delete()
-			
-		s_ex_del_list_2 = Shift_Exception.objects.filter(start_date_time__date = b_date_format)
-		for s_ex_1 in s_ex_del_list_2:
 			s_ex_1.delete()
 
 		bestTimeBreak1_end = bestTimeBreak1 + timedelta(minutes=15)
 		start_dif = business_day.day - bestTimeBreak1.day
 		end_dif = business_day.day - bestTimeBreak1_end.day
-		s_ex = Shift_Exception(user = profile, event = ev_b, start_date_time = bestTimeBreak1, start_diff = start_dif, end_date_time = bestTimeBreak1_end, end_diff = end_dif, actioned_by = auser, approved = True)
+		s_ex = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak1, start_diff = start_dif, end_date_time = bestTimeBreak1_end, end_diff = end_dif, actioned_by = auser, approved = True)
 		s_ex.save()
 		
 		bestTimeBreak2_end = bestTimeBreak2 + timedelta(minutes=15)
 		start_dif = business_day.day - bestTimeBreak2.day
 		end_dif = business_day.day - bestTimeBreak2_end.day
-		s_ex_2 = Shift_Exception(user = profile, event = ev_b, start_date_time = bestTimeBreak2, start_diff = start_dif, end_date_time = bestTimeBreak2_end, end_diff = end_dif, actioned_by = auser, approved = True)
+		s_ex_2 = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak2, start_diff = start_dif, end_date_time = bestTimeBreak2_end, end_diff = end_dif, actioned_by = auser, approved = True)
 		s_ex_2.save()
 		
 		bestTimeLunch_end = bestTimeLunch + timedelta(minutes=30)
 		start_dif = business_day.day - bestTimeLunch.day
 		end_dif = business_day.day - bestTimeLunch_end.day
-		s_ex_l = Shift_Exception(user = profile, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, approved = True)
+		s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, approved = True)
 		s_ex_l.save()
 		
 		

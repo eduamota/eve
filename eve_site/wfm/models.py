@@ -123,6 +123,7 @@ class Event(models.Model):
     
 class Shift_Exception(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    shift_sequence = models.ForeignKey(Shift_Sequence, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     start_date_time = models.DateTimeField()
     start_diff = models.DecimalField(max_digits=1, decimal_places=0)
@@ -131,6 +132,6 @@ class Shift_Exception(models.Model):
     actioned_time = models.DateTimeField(default=timezone.now, blank=True)
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
     approved = models.BooleanField(default=False)
-    
+        
     def __str__(self):              # __unicode__ on Python 2
         return str(self.event)
