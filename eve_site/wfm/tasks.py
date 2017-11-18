@@ -13,6 +13,7 @@ from datetime import timedelta, datetime, date
 from celery import shared_task
 from django.db import connection
 import pytz
+import sys
 
 def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
@@ -106,7 +107,7 @@ def saveShifts(sDate, eDate, cUser, aUser):
 	shifts = shifts.filter(valid_from__lte=end)
 	shifts = shifts.filter(valid_to__gte=start)
 
-	
+	tzo = pytz.timezone("UTC")
 	for s in shifts:
 		working_days={
 			"Sunday": s.sunday,
@@ -141,14 +142,17 @@ def saveShifts(sDate, eDate, cUser, aUser):
 			
 			if working_days[dayName]:
 				try:
-					stDate = datetime.strptime(start_format + " " + day_start, '%Y-%m-%d %H:%M:%S')
-					etDate = datetime.strptime(end_format + " " + day_end, '%Y-%m-%d %H:%M:%S')
+					stDate = tzo.localize(datetime.strptime(start_format + " " + day_start, '%Y-%m-%d %H:%M:%S'))
+					etDate = tzo.localize(datetime.strptime(end_format + " " + day_end, '%Y-%m-%d %H:%M:%S'))
+
 					sh_f = Shift_Sequence.objects.filter(start_date_time__date = start_format).filter(user = profile)
 					for sh1 in sh_f:
 						sh1.delete()
+					
 					sh = Shift_Sequence(user = profile, start_date_time = stDate, start_diff = int(s.day_model.day_start_diff), end_date_time = etDate, end_diff = int(s.day_model.day_end_diff), actioned_by = auser)
-					sh.save()			
+					sh.save()
 				except:
+					print "Unexpected error:", sys.exc_info()[0]
 					pass
 					#return response
 			start_date = start_date + timedelta(days=1)
@@ -219,6 +223,8 @@ def runsaveBreaks():
 	stf = Job_Status.objects.get(name="Failed")
 	j = Job.objects.filter(status = st).filter(job_type = "Add_Breaks_and_Lunches")
 	
+	
+	
 	for jb in j:
 		jb.status = sr
 		jb.save()
@@ -253,6 +259,7 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 	cuuser = User.objects.get(username = cUser)
 	auser = User.objects.get(username = aUser)
 	profile = Profile.objects.get(user = cuuser)
+	
 	
 	#start = date.today()
 	#end = last_day_of_month(date.today())
@@ -369,8 +376,7 @@ def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration):
 					total = total + float(r[1])
 				else:
 					if r[0] in diff:
-						print date_in
-						print r[0]
+
 						del diff[r[0]]
 				i += 1
 				
@@ -387,7 +393,9 @@ def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration):
 			lowestAgents = value
 			besttime = k
 	c.close()
+	tzo = pytz.timezone("UTC")
 	
+	besttime = tzo.localize(besttime)
 	return besttime 
 				
 		
