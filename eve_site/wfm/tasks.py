@@ -14,6 +14,8 @@ from celery import shared_task
 from django.db import connection
 import pytz
 import sys
+import json
+import collections
 
 def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
@@ -90,6 +92,41 @@ def runsaveShift():
 			jb.status = stf
 			jb.save()
 			
+	calculateSLA(sDate, eDate)
+	
+@shared_task
+def runsaveMeetings():
+	
+	st = Job_Status.objects.get(name="Queued")
+	sr = Job_Status.objects.get(name="Running")
+	sts = Job_Status.objects.get(name="Success")
+	stf = Job_Status.objects.get(name="Failed")
+	j = Job.objects.filter(status = st).filter(job_type = "Schedule_a_Meeting")
+	
+	for jb in j:
+		jb.status = sr
+		jb.save()
+		sDate = jb.from_date
+		eDate = jb.to_date
+		cUser = jb.agents
+		aUser = jb.actioned_by
+		aUser = aUser.username
+		
+		try:
+			if int(cUser) == 0:
+				agents = User.objects.filter(groups__name = 'Agent')
+				for agent in agents:
+					saveMeetings(sDate, eDate, agent.username, aUser, jb.parameters)
+			else:
+				cUser = User.objects.get(pk = cUser)
+				cUser = cUser.username
+			
+				saveMeetings(sDate, eDate, cUser, aUser, jb.parameters)
+			jb.status = sts
+			jb.save()
+		except:
+			jb.status = stf
+			jb.save()
 	calculateSLA(sDate, eDate)
 			
 def saveShifts(sDate, eDate, cUser, aUser):
@@ -234,6 +271,7 @@ def runsaveBreaks():
 		aUser = jb.actioned_by
 		aUser = aUser.username
 		
+		
 		try:
 			if int(cUser) == 0:
 				agents = User.objects.filter(groups__name = 'Agent')
@@ -251,6 +289,81 @@ def runsaveBreaks():
 			jb.save()
 			
 	calculateSLA(sDate, eDate)
+	
+def saveMeetings(sDate, eDate, cUser, aUser, parameters):
+	
+	cur = connection.cursor()
+		
+	cuuser = User.objects.get(username = cUser)
+	auser = User.objects.get(username = aUser)
+	profile = Profile.objects.get(user = cuuser)
+	
+	#start = date.today()
+	#end = last_day_of_month(date.today())
+	start = sDate.date()
+	end = eDate.date()
+	
+	skills = profile.skill.all()
+
+	ski = []
+	for sk in skills:
+		sk_f = sk.name
+		if "Phone" in sk_f:
+			sk_f = sk_f.replace(" - Phone","")
+		else:
+			continue
+		
+		if sk_f != "English":
+			ski.insert(0, sk_f)
+		else:
+			ski.append(sk_f)
+	
+	
+	p_j = json.loads(parameters)
+	
+	start_date = sDate.strftime("%Y-%m-%d")
+	start_time = sDate.strftime("%H:%M:%S")
+	end_time = eDate.strftime("%H:%M:%S")
+	duration = p_j['duration']
+	notes = p_j['notes']
+	ev = p_j['event']
+	override = p_j['override']
+	
+	shifts = Shift_Sequence.objects.filter(user=profile)
+	shifts = shifts.filter(start_date_time__date__gte=sDate)
+	shifts = shifts.filter(start_date_time__date__lte=eDate)
+	
+	bestTime = ""
+	
+	bestTime = ""
+	lowest = -1
+	for s in shifts:
+
+		meetingTime, agents = findBestTimeMultiple(ski, s.start_date_time.date(), s.start_date_time, s.end_date_time, duration, profile, override)
+		
+		if agents < lowest or lowest == -1:
+			bestTime = meetingTime
+			lowest = agents
+	
+	
+	start = bestTime.date()
+	
+	
+	meetingTime_end = bestTime + timedelta(minutes=int(duration))
+	
+	s = Shift_Sequence.objects.get(user=profile, start_date_time__date = start)
+	
+	print s.pk
+	start_dif = 0
+	end_dif = 0
+	
+	e = Event.objects.get(name=ev)
+			
+	s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = e, start_date_time = bestTime, start_diff = start_dif, end_date_time = meetingTime_end, end_diff = end_dif, actioned_by = auser, approved = True)
+	
+	s_ex_l.save()
+		
+	cur.close()
 	
 def saveBreaks(sDate, eDate, cUser, aUser):
 	
@@ -346,7 +459,122 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 	cur.close()
 		
 		
-def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration):
+def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, override=False):
+	c = connection.cursor()
+	
+	duration = int(duration)
+	
+	b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
+	
+	b_time_end_format = b_time_end + timedelta(minutes = (duration-15))
+	b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")	
+	
+	intervals = duration / 15
+	
+
+	diff = {}
+	
+	for sk in ski:
+		c.execute("SELECT `date`, (agents_required - actual_agents_scheduled) as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		results = c.fetchall()
+		
+		for r in results:
+			if r[0] not in diff:
+				diff[r[0]] = 0
+				
+		for r in results:
+			i = 0
+			total = 0
+			while i < intervals:
+				m = 15 * i
+				date_in = r[0] + timedelta(minutes=m)
+				s_e = ShifT_Exception.object.filter(start_date_time__lte = date_in).filter(end_date_time__gte = r[0]).filter(user=pro)
+				if len(s_e) > 0:
+					if r[0] in diff:
+
+						del diff[r[0]]
+				elif date_in in diff:
+					total = total + float(r[1])
+				else:
+					if r[0] in diff:
+
+						del diff[r[0]]
+				i += 1
+				
+			if r[0] in diff:
+				diff[r[0]] = diff[r[0]] + total
+	
+	
+		
+	besttime = ""
+	lowestAgents = -1
+
+	for k, value in diff.items():
+		if value < lowestAgents or lowestAgents == -1:
+			lowestAgents = value
+			besttime = k
+	c.close()
+	tzo = pytz.timezone("UTC")
+	
+	besttime = tzo.localize(besttime)
+	return besttime 
+	
+def findBestTimeMultiple(ski, b_date_format, b_time_start, b_time_end, duration, pro, override=False):
+	c = connection.cursor()
+	
+	duration = int(duration)
+	
+	b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
+	
+	b_time_end_format = b_time_end + timedelta(minutes = (duration-15))
+	b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")	
+	
+	intervals = duration / 15
+	
+
+	diff = {}
+	
+	for sk in ski:
+		c.execute("SELECT `date`, (agents_required - actual_agents_scheduled) as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		results = c.fetchall()
+		
+		for r in results:
+			if r[0] not in diff:
+				diff[r[0]] = 0
+				
+		for r in results:
+			i = 0
+			total = 0
+			while i < intervals:
+				m = 15 * i
+				date_in = r[0] + timedelta(minutes=m)
+				if date_in in diff:
+					total = total + float(r[1])
+				else:
+					if r[0] in diff:
+						del diff[r[0]]
+				i += 1
+				
+			if r[0] in diff:
+				diff[r[0]] = diff[r[0]] + total
+	
+	
+		
+	besttime = ""
+	lowestAgents = -1
+
+	for k, value in diff.items():
+		if value < lowestAgents or lowestAgents == -1:
+			lowestAgents = value
+			besttime = k
+	c.close()
+	tzo = pytz.timezone("UTC")
+	
+	besttime = tzo.localize(besttime)
+
+	return besttime, lowestAgents
+
+def findBestTimes(ski, b_date_format, b_time_start, b_time_end, duration):
 	c = connection.cursor()
 	
 	b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
@@ -385,19 +613,17 @@ def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration):
 	
 	
 		
-	besttime = ""
+	besttimes = []
 	lowestAgents = -1
-
+	tzo = pytz.timezone("UTC")
+	
 	for k, value in diff.items():
 		if value < lowestAgents or lowestAgents == -1:
 			lowestAgents = value
-			besttime = k
+			besttimes.append(tzo.localize(k))
 	c.close()
-	tzo = pytz.timezone("UTC")
 	
-	besttime = tzo.localize(besttime)
-	return besttime 
-				
+	return besttimes.sort()			
 		
 		
 		

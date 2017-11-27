@@ -27,7 +27,7 @@
             
             <div class="row">
                 <div class="input-field col s6">
-                    <select id="Action" name="action">
+                    <select id="action" name="action">
                         <option value="" disabled selected>Select an Action</option>
                         {% for id, event in event_list.items %}
                         <option value={{ id }}>{{ event }}</option>
@@ -49,10 +49,55 @@
             </div>
             
             <div id="meeting" class="hide">
+                
+                <div class="row">
+                    <div class="input-field col s6">
+                        <select id="event" name="event">
+                            <option value="" disabled selected>Select an Event</option>
+                            <option value="Meeting">Meeting</option>
+                            <option value="Training">Training</option>
+                            <option value="COaching">Coaching</option>
+                        </select>
+                        <label>Select an Event</label>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="input-field col s6">
+                        <select id="duration" name="duration">
+                            <option value="" disabled selected>Select an Action</option>
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="45">45 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="75">1 hour and 15 minutes</option>
+                            <option value="90">1 hour and 30 minutes</option>
+                            <option value="105">1 hour and 45 minutes</option>
+                            <option value="120">2 hours</option>
+                            <option value="135">2 hours and 15 minutes</option>
+                            <option value="150">2 hours and 30 minutes</option>
+                            <option value="165">2 hours and 45 minutes</option>
+                            <option value="180">3 hours</option>
+                            <option value="195">3 hours and 15 minutes</option>
+                            <option value="210">3 hours and 30 minutes</option>
+                            <option value="225">3 hours and 45 minutes</option>
+                            <option value="240">4 hours</option>
+                        </select>
+                        <label>Select duration</label>
+                    </div>
+                </div>
+                
                 <div class="row">
                     <p class="range-field col s6">
-                        <label for="group_size">Group size (select 1 for individual</label>
+                        <label for="group_size">Group size (select 1 for individual)</label>
                         <input type="range" id="group_size" name="group_size" min="1" max="10" />
+                    </p>
+                </div>
+                
+                <div class="row">
+                    <p class="col s6">
+                        <input type="checkbox" id="override" name="override">
+                        <label for="override">Override existing meetings?</label>
                     </p>
                 </div>
                 
@@ -87,8 +132,10 @@
             close: 'Ok',
             closeOnSelect: true // Close upon selecting a date,
           });
-        $("#Action").on('change', function() {
+        $("#action").on('change', function() {
+           
             if (this.value == "Schedule_a_Meeting"){
+                
                 $('#meeting').removeClass('hide');
             }
             else{

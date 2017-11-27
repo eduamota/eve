@@ -7,11 +7,12 @@ from django.contrib.auth.models import User, Group
 from datetime import timedelta, datetime, date
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from .tasks import runsaveShift, runsaveBreaks, runsaveShiftBreaks
+from .tasks import runsaveShift, runsaveBreaks, runsaveShiftBreaks, runsaveMeetings
 from django.db import connection
 from django.db.models import Q
 import pytz
 from datetime import datetime
+import json
 
 def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
@@ -94,6 +95,7 @@ def schedule_job(request):
 			"Insert_Shifts_&_Breaks":"Insert Shifts and add Breaks"}
 			
 	if 'action' in request.POST:
+		print(request.POST)
 		actions = request.POST.getlist('action')
 		start_date = request.POST.getlist('from')
 		end_date = request.POST.getlist('to')
@@ -105,7 +107,20 @@ def schedule_job(request):
 		end_date = datetime.strptime(end_date[0], '%d %B, %Y')
 		end_date = tz.localize(end_date)
 		
-		st = Job_Status.objects.get(name="Queued")		
+		st = Job_Status.objects.get(name="Queued")
+		
+		param = ""
+		
+		if actions[0] == "Schedule_a_Meeting":
+			group_size = request.POST['group_size']
+			notes = request.POST['meeting_notes']
+			event = request.POST['event']
+			override = ""
+			duration = request.POST['duration']
+			if "override" in request.POST:
+				override = request.POST['override']
+			
+			param = {"group_size": group_size, "override" : override, "notes": notes, "event": event, "duration":duration}
 		
 		for a in agent:
 			j = Job(job_type = actions[0],
@@ -113,7 +128,8 @@ def schedule_job(request):
 				to_date = end_date,
 				agents = a,
 				status = st,
-				actioned_by = request.user)
+				actioned_by = request.user,
+				parameters = json.dumps(param))
 			
 			j.save()
 		messages['The job ' + request.POST['action'] + ' has been saved'] = "green"
@@ -124,6 +140,8 @@ def schedule_job(request):
 			runsaveBreaks.delay()
 		elif actions[0] == 'Insert_Shifts_&_Breaks':
 			runsaveShiftBreaks.delay()
+		elif actions[0] == 'Schedule_a_Meeting':
+			runsaveMeetings.delay()
 	
 	return render(request, 'shifts/add_exceptions.html', {'agent_list': agent_list, 'event_list': event_list, "messages": messages})
 	
@@ -166,11 +184,15 @@ def getShifts(request):
 	
 	if 'start' in request.GET and request.GET['start']:
 		start = request.GET['start']
+		if len(start) < 16:
+			start += "T00:00:00"
 		start = tzo.localize(datetime.strptime(start, '%Y-%m-%dT%H:%M:%S'))
 		
 		
 	if 'end' in request.GET and request.GET['end']:
 		end = request.GET['end']
+		if len(end) < 16:
+			end+= "T00:00:00"
 		end = tzo.localize(datetime.strptime(end, '%Y-%m-%dT%H:%M:%S'))
 
 	exceptions = Shift_Exception.objects.filter(user=profile)
