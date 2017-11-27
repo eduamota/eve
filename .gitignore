@@ -23,6 +23,7 @@
 
 # Custom Configuration #
 *.cnf
+settings.py
 
 # Logs and databases #
 ######################
