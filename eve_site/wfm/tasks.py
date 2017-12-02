@@ -20,6 +20,12 @@ import collections
 def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
 	return next_month - timedelta(days=next_month.day)
+	
+@shared_task
+def test():
+        f = open('test.csv', 'w')
+        f.write("Something")
+        f.close()
 
 @shared_task
 def runsaveShiftBreaks():

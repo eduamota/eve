@@ -95,7 +95,7 @@ def schedule_job(request):
 			"Insert_Shifts_&_Breaks":"Insert Shifts and add Breaks"}
 			
 	if 'action' in request.POST:
-		print(request.POST)
+		#print(request.POST)
 		actions = request.POST.getlist('action')
 		start_date = request.POST.getlist('from')
 		end_date = request.POST.getlist('to')
@@ -157,7 +157,11 @@ def set_timezone(request):
 # Create your views here.
 @login_required
 def calendar(request):	
-	return render(request, 'shifts/default.html')
+	actions = {"timeoff":"Request Time Off",
+			"overtime":"Request Overtime",
+			"meeting":"Request a 1-1 / Coaching",
+								}
+	return render(request, 'shifts/default.html', {"actions":actions,})
 	
 @login_required
 def calendar_team(request):	
