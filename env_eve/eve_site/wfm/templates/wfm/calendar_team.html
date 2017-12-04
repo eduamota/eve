@@ -1,0 +1,85 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Calendar{% endblock %}
+   
+    {% block head_css_section %}
+        {% load static %}
+        <link href="{% static "shifts/fullcalendar.min.css" %}" rel='stylesheet' />
+        <link href="{% static "shifts/scheduler.min.css" %}" rel='stylesheet' />
+        <link href="{% static "shifts/fullcalendar.print.min.css" %}" rel='stylesheet' media="print" />    
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+
+        body {
+            
+            padding: 0;
+            font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+            font-size: 14px;
+        }
+
+    </style>
+    {% endblock head_css_page %}
+
+{% block head_js %}
+    {% load static %}
+    <script src="{% static "shifts/lib/moment.min.js" %}"></script>   
+    <script src="{% static "shifts/fullcalendar.min.js" %}"></script>
+    <script src="{% static "shifts/scheduler.min.js" %}"></script>
+
+    <script>
+
+	   $(document).ready(function() {
+		$('#calendar').fullCalendar({
+            schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+            header: {
+				left: 'prev,next today',
+				center: 'title',
+			},
+            defaultView: 'timelineDay',
+			//defaultDate: '2017-09-12',
+			editable: true,
+			eventLimit: true, // allow "more" link when too many events
+            aspectRatio: 2,
+            resources: {
+                url: '/wfm/resources/',
+                type: 'GET'
+              },
+            events: 
+                // your event source
+                {
+                    url: '/wfm/team_events/', // use the `url` property
+                },
+            eventDrop: function(event, delta, revertFunc) {
+
+                //alert(event.title + " was dropped on " + event.start.format());
+
+                if (!confirm("Are you sure about this change?")) {
+                    revertFunc();
+                }
+
+            },
+            eventResize: function(event, delta, revertFunc) {
+
+                alert(event.title + " end is now " + event.end.format());
+
+                if (!confirm("is this okay?")) {
+                    revertFunc();
+                }
+
+            }
+		});
+		
+	});
+
+    </script>
+{% endblock head_js %}
+{% block pagetitle %}WFM Calendar{% endblock pagetitle %}
+{% block content %}
+    <div id='header'>
+        <span>{{ name }}</span>
+    </div>
+	<div id='calendar'></div>
+{% endblock content %}
+    

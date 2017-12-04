@@ -1,0 +1,135 @@
+{# HTML5 declaration #}
+<!DOCTYPE html>
+<html>
+    {# Make modifiable head elements #}
+    <head>
+        <title>{% block title %}Home{% endblock title %} | CS Ops</title>
+        {% block head_favicon %}
+            <link rel="icon" type="image/png"
+                  href="{{ STATIC_URL }}images/favicon.ico">
+        {% endblock head_favicon %}
+        {% block head_meta %}
+            {% block head_meta_charset %}
+                <meta http-equiv="Content-Type"
+                      content="text/html; charset=utf-8" />
+            {% endblock head_meta_charset %}
+            {% block head_meta_contentlanguage %}
+                <meta http-equiv="Content-Language" value="en-US" />
+            {% endblock head_meta_contentlanguage %}
+            {% block head_meta_viewport %}
+                <meta name="viewport"
+                      content="width=device-width, initial-scale=1.0">
+            {% endblock head_meta_viewport %}
+        {% endblock head_meta %}
+        {% block head_css %}
+            {% block head_css_site %}
+                <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+                {% load static %}
+                <link href="{% static 'css/materialize.css' %}" rel='stylesheet' media="screen"/>
+            {% endblock head_css_site %}
+            
+            {% block head_css_section %}{% endblock head_css_section %}
+            
+            {% block head_css_page %}{% endblock head_css_page %}
+        
+        {% endblock head_css %}
+        
+        {% load static %}
+            <script type="text/javascript" src="{% static 'js/jquery-3.2.1.min.js' %}"></script>
+        
+            <script type="text/javascript" src="{% static 'js/materialize.min.js' %}"></script>
+        {% block head_js %}
+        
+        {% endblock head_js %}
+    </head>
+    
+    <body>
+    {# Navigation Menu #}
+        <div>
+            <div class="navbar-fixed">
+                <!-- Dropdown Structure -->
+                <ul id="dropdown1" class="dropdown-content hyperwallet-s1">
+                    <li class="grey lighten-4">Chooose an action</li>
+                  <li><a class="waves-effect" href="/phone/queues/">Add Agents to Queue</a></li>
+                  <li><a class="waves-effect" href="/phone/agents/">Add Agent to Queues</a></li>
+                  <li><a class="waves-effect" href="/phone/issues/">Report an issue</a></li>
+                </ul>
+                <!-- Dropdown Structure -->
+                <ul id="dropdown2" class="dropdown-content hyperwallet-s1">
+                    <li class="grey lighten-4">Chooose an action</li>
+                  <li><a class="waves-effect" href="/quality/form/">New Form</a></li>
+                  <li><a class="waves-effect" href="/quality/form/search">Search Form</a></li>
+                </ul>
+                <nav>
+                    <div class="nav-wrapper hyperwallet">
+                        
+                        <a href="/dashboard" class="brand-logo center">CS Ops 360 {% block pagetitle %}{% endblock pagetitle %}</a>
+                        
+                        <a href="" data-activates="slide-out" class="button-collapse show-on-large right"><i class="material-icons">menu</i></a>
+        
+                    </div>
+                </nav>
+            </div>
+            <ul id="slide-out" class="side-nav right" >
+                <li>
+                    <div class="user-view">
+                        <div class="background hyperwallet-s1">
+
+                        </div>
+                        <a href="#!name"><span class="white-text name">John Doe</span></a>
+                        <a href="#!email"><span class="white-text email">jdandturk@gmail.com</span></a>
+                    </div>
+                </li>
+                {% if user.is_authenticated %}
+                
+                    <li><a class="subheader hyperwallet-s2-text text-darken-2">Account</a></li>
+                    <li><a href="/accounts/logout/">Logout</a></li>
+                
+                    <li><div class="divider"></div></li>
+                    <li><a class="subheader hyperwallet-s2-text text-darken-2">Site</a></li>
+                    <li><a class="dropdown-button" href="#!" data-activates="dropdown1">Phone Mng.<i class="material-icons right">arrow_drop_down</i></a></li>
+                    <li><a class="dropdown-button" href="#!" data-activates="dropdown2">Quality<i class="material-icons right">arrow_drop_down</i></a></li>
+                    
+                    {% if actions %}
+                        <li><div class="divider"></div></li>
+                        <li><a class="subheader hyperwallet-s2-text text-darken-2">Actions</a></li>
+                        {% for l, v in actions.items %}
+                            <li><a class="waves-effect" href="{{ l }}">{{ v }}</a></li>
+                        {% endfor %}
+                    {% endif %}
+                {% else %}
+                    <li><a href="/accounts/login/">Login</a></li>
+                {% endif %}
+
+            </ul>
+            <br/>
+            <br/>
+        {# The Document Body #}
+            {% block content %}
+                if you see this, something is wrong!
+            {% endblock content %}
+        {# The Footer #}
+        <div class="footer">
+            <div class="container">
+                <p>Copyright 2017</p>
+            </div>
+        </div>
+    </div>
+</body>
+    <script>
+            $(document).ready(function() {
+            // Initialize collapse button
+          $(".button-collapse").sideNav({edge: 'right', closeOnClick: false, });
+          // Initialize collapsible (uncomment the line below if you use the dropdown variation)
+          //$('.collapsible').collapsible();
+                });
+        </script>closeOnClick: true,
+    {# Set of blocks that can be used to display JavaScript files #}
+    {% block footer_javascript %}
+        {% block footer_javascript_site %}
+            
+        {% endblock footer_javascript_site %}
+        {% block footer_javascript_section %}{% endblock footer_javascript_section %}
+        {% block footer_javascript_page %}{% endblock footer_javascript_page %}
+    {% endblock footer_javascript %}
+</html>

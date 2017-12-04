@@ -1,0 +1,147 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Add Exceptions{% endblock %}
+
+
+{% block content %}
+{% if messages %}
+        {% for message, color in messages.items %}
+            <script>Materialize.toast('{{message}}', 4000, '{{color}}');</script>
+        {% endfor %}
+    {% endif %}
+<div class="container">
+    <div class="row">
+        <form class="col s12" action="" method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="input-field col s6">
+                    <select multiple id="Agent" name="agent">
+                        <option value="" disabled selected>Select an Agent</option>
+                        {% for id, agent in agent_list.items %}
+                        <option value={{ id }}>{{ agent }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Select an Agent</label>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="input-field col s6">
+                    <select id="action" name="action">
+                        <option value="" disabled selected>Select an Action</option>
+                        {% for id, event in event_list.items %}
+                        <option value={{ id }}>{{ event }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Select an Action</label>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="input-field col s3">
+                    <input id="from" name="from" type="text" class="datepicker">
+                    <label for="from">From Date</label>
+                </div>
+                <div class="input-field col s3">
+                    <input id="to" name="to" type="text" class="datepicker">
+                    <label for="to">To Date</label>
+                </div>
+            </div>
+            
+            <div id="meeting" class="hide">
+                
+                <div class="row">
+                    <div class="input-field col s6">
+                        <select id="event" name="event">
+                            <option value="" disabled selected>Select an Event</option>
+                            <option value="Meeting">Meeting</option>
+                            <option value="Training">Training</option>
+                            <option value="COaching">Coaching</option>
+                        </select>
+                        <label>Select an Event</label>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="input-field col s6">
+                        <select id="duration" name="duration">
+                            <option value="" disabled selected>Select an Action</option>
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="45">45 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="75">1 hour and 15 minutes</option>
+                            <option value="90">1 hour and 30 minutes</option>
+                            <option value="105">1 hour and 45 minutes</option>
+                            <option value="120">2 hours</option>
+                            <option value="135">2 hours and 15 minutes</option>
+                            <option value="150">2 hours and 30 minutes</option>
+                            <option value="165">2 hours and 45 minutes</option>
+                            <option value="180">3 hours</option>
+                            <option value="195">3 hours and 15 minutes</option>
+                            <option value="210">3 hours and 30 minutes</option>
+                            <option value="225">3 hours and 45 minutes</option>
+                            <option value="240">4 hours</option>
+                        </select>
+                        <label>Select duration</label>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <p class="range-field col s6">
+                        <label for="group_size">Group size (select 1 for individual)</label>
+                        <input type="range" id="group_size" name="group_size" min="1" max="10" />
+                    </p>
+                </div>
+                
+                <div class="row">
+                    <p class="col s6">
+                        <input type="checkbox" id="override" name="override">
+                        <label for="override">Override existing meetings?</label>
+                    </p>
+                </div>
+                
+                <div class="row">
+                    <div class="input-field col s6">
+                        <textarea id="meeting_notes" name="meeting_notes" class="materialize-textarea"></textarea>
+                        <label for="meeting_notes">Meeting notes</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <button class="btn waves-effect waves-light" type="submit" name="action">Submit
+                    <i class="material-icons right">send</i>
+                </button>
+            </div>
+            
+        </form>
+    </div>
+</div>
+{% endblock content %}
+
+{% block footer_javascript_section %}
+<script>
+    $(document).ready(function() {
+        $('select').material_select();
+        $('.datepicker').pickadate({
+            selectMonths: true, // Creates a dropdown to control month
+            selectYears: 15, // Creates a dropdown of 15 years to control year,
+            today: 'Today',
+            clear: 'Clear',
+            close: 'Ok',
+            closeOnSelect: true // Close upon selecting a date,
+          });
+        $("#action").on('change', function() {
+           
+            if (this.value == "Schedule_a_Meeting"){
+                
+                $('#meeting').removeClass('hide');
+            }
+            else{
+                $('#meeting').addClass('hide');
+            }
+        });
+    });
+</script>
+{% endblock footer_javascript_section %}

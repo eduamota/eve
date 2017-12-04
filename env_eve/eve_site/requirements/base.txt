@@ -1,0 +1,4 @@
+#base.txt
+Django==1.11.5
+djangorestframework
+mysqlclient
