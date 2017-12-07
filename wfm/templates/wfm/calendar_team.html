@@ -32,16 +32,31 @@
 
 	   $(document).ready(function() {
 		$('#calendar').fullCalendar({
+            height: 700,
+            contentHeight: 700,
             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+            resourcesInitiallyExpanded: false,
             header: {
 				left: 'prev,next today',
 				center: 'title',
+                right: 'timelineMonth,timelineWeek,timelineDay'
 			},
             defaultView: 'timelineDay',
 			//defaultDate: '2017-09-12',
 			editable: true,
 			eventLimit: true, // allow "more" link when too many events
-            aspectRatio: 2,
+            resourceOrder: 'title,',
+            views: {
+                timelineDay: {
+                    buttonText: "Day",
+                },
+                timelineWeek: {
+                    buttonText: "Week",
+                },
+                timelineMonth: {
+                    buttonText: "Month",
+                },
+            },
             resources: {
                 url: '/wfm/resources/',
                 type: 'GET'

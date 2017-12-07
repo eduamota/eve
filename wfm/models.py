@@ -3,50 +3,8 @@ from __future__ import unicode_literals
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils import timezone
-# Create your models here.
-    
-class Location(models.Model):
-    name = models.CharField(max_length=50)
-    iso_name = models.CharField(max_length=50)
-    
-    def __str__(self):              # __unicode__ on Python 2
-        return self.name
-    
-class Role(models.Model):
-    name = models.CharField(max_length=50)
-    
-    def __str__(self):              # __unicode__ on Python 2
-        return self.name
-        
-class Skill(models.Model):
-    name = models.CharField(max_length=50)
-    level = models.DecimalField(max_digits=3	, decimal_places=0)
-				
-    def __str__(self):              # __unicode__ on Python 2
-        return self.name
-
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    employee_number = models.SmallIntegerField(blank=True)
-    extension = models.SmallIntegerField(blank=True)
-    location = models.ForeignKey(Location, on_delete=models.CASCADE, blank=True)
-    label = models.CharField(max_length=150, blank=True)
-    skill = models.ManyToManyField(Skill, blank=True)
-    
-    def __str__(self):              # __unicode__ on Python 2
-        return str(self.user)
-
-    @receiver(post_save, sender=User)
-    def create_user_profile(sender, instance, created, **kwargs):
-        if created:
-            Profile.objects.create(user=instance)
-            
-    @receiver(post_save, sender=User)
-    def save_user_profile(sender, instance, **kwargs):
-        instance.profile.save()
+from utils.models import Profile    
 
 class Day_Model(models.Model):
     name = models.CharField(max_length=40)
@@ -130,9 +88,20 @@ class Shift_Exception(models.Model):
     start_diff = models.DecimalField(max_digits=1, decimal_places=0)
     end_date_time = models.DateTimeField()
     end_diff = models.DecimalField(max_digits=1, decimal_places=0)
+    submitted_time = models.DateTimeField(default=timezone.now)
     actioned_time = models.DateTimeField(default=timezone.now, blank=True)
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
     approved = models.BooleanField(default=False)
+    
         
     def __str__(self):              # __unicode__ on Python 2
         return str(self.event)
+								
+class Shift_Exception_Note(models.Model):
+    shift_exception = models.ForeignKey(Shift_Exception, on_delete=models.CASCADE)
+    note = models.CharField(max_length=250)
+    created_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    created_time = models.DateTimeField(default=timezone.now)
+	
+    def __str__(self):              # __unicode__ on Python 2
+        return str(self.created_by.first_name) + " " + str(self.created_by.last_name)

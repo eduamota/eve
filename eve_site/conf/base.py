@@ -12,6 +12,7 @@ SECRET_KEY = '1i^nrwl-^3o1+lhdir*a!6@-h9o7p$nq1u+53pe@!&e&hhkhdm'
 # Application definition
 
 INSTALLED_APPS = [
+    'utils.apps.UtilsConfig',
     'clients.apps.ClientsConfig',
     'quality.apps.QualityConfig',
     'phone.apps.PhoneConfig',
