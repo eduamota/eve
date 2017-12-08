@@ -14,6 +14,6 @@ urlpatterns = [
 	url(r'^scheduler/(?P<action>[a-z]+)$', views.scheduler),
 	url(r'^add_job/$', views.add_jobs),
 	url(r'^settz/$', views.set_timezone),
-	url(r'^calendar/(?P<ev>[a-zA-Z]+)$', views.add_event),
-	url(r'^review/requests$', views.review_requests)
+	url(r'^request/(?P<ev>[a-zA-Z]+)$', views.add_event),
+	url(r'^review/requests$', views.review_requests),
 ]

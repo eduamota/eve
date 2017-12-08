@@ -21,11 +21,6 @@ def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
 	return next_month - timedelta(days=next_month.day)
 	
-@shared_task
-def test():
-        f = open('test.csv', 'w')
-        f.write("Something")
-        f.close()
 
 @shared_task
 def runsaveShiftBreaks():
@@ -359,13 +354,13 @@ def saveMeetings(sDate, eDate, cUser, aUser, parameters):
 	
 	s = Shift_Sequence.objects.get(user=profile, start_date_time__date = start)
 	
-	print s.pk
+	#print s.pk
 	start_dif = 0
 	end_dif = 0
 	
 	e = Event.objects.get(name=ev)
 			
-	s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = e, start_date_time = bestTime, start_diff = start_dif, end_date_time = meetingTime_end, end_diff = end_dif, actioned_by = auser, approved = True)
+	s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = e, start_date_time = bestTime, start_diff = start_dif, end_date_time = meetingTime_end, end_diff = end_dif, actioned_by = auser, status = 1)
 	
 	s_ex_l.save()
 		
@@ -447,19 +442,19 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		bestTimeBreak1_end = bestTimeBreak1 + timedelta(minutes=15)
 		start_dif = business_day.day - bestTimeBreak1.day
 		end_dif = business_day.day - bestTimeBreak1_end.day
-		s_ex = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak1, start_diff = start_dif, end_date_time = bestTimeBreak1_end, end_diff = end_dif, actioned_by = auser, approved = True)
+		s_ex = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak1, start_diff = start_dif, end_date_time = bestTimeBreak1_end, end_diff = end_dif, actioned_by = auser, status = 1)
 		s_ex.save()
 		
 		bestTimeBreak2_end = bestTimeBreak2 + timedelta(minutes=15)
 		start_dif = business_day.day - bestTimeBreak2.day
 		end_dif = business_day.day - bestTimeBreak2_end.day
-		s_ex_2 = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak2, start_diff = start_dif, end_date_time = bestTimeBreak2_end, end_diff = end_dif, actioned_by = auser, approved = True)
+		s_ex_2 = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak2, start_diff = start_dif, end_date_time = bestTimeBreak2_end, end_diff = end_dif, actioned_by = auser, status = 1)
 		s_ex_2.save()
 		
 		bestTimeLunch_end = bestTimeLunch + timedelta(minutes=30)
 		start_dif = business_day.day - bestTimeLunch.day
 		end_dif = business_day.day - bestTimeLunch_end.day
-		s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, approved = True)
+		s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, status = 1)
 		s_ex_l.save()
 		
 	cur.close()

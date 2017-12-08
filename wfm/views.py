@@ -14,9 +14,9 @@ import pytz
 from datetime import datetime
 import json
 
-request_actions = {"Timeoff":"Request Time Off",
-			"Overtime":"Request Overtime",
-			"Meeting":"Request a 1-1 / Coaching",
+request_actions = {"../request/Timeoff":"Request Time Off",
+			"../request/Overtime":"Request Overtime",
+			"../request/Meeting":"Request a 1-1 / Coaching",
 								}
 
 def last_day_of_month(any_day):
@@ -533,6 +533,8 @@ def add_event(request, ev=False):
 def review_requests(request):
 	messages = {}
 	
+	user_profile = Profile.objects.get(user = request.user)
+	
 	tz = pytz.timezone(request.user.profile.location.iso_name)
 
 	all_users = Profile.objects.filter(user__groups__name = 'Agent')
@@ -552,17 +554,25 @@ def review_requests(request):
 		st_type = ""				
 		st_status = ""
 		
+		form_data = {}
+		
 		if 'agent_id' in request.POST:
 			agent_id = request.POST['agent_id']		
+			form_data['agent_id'] = agent_id
 		
 		if 'type' in request.POST:
 			st_type = request.POST['type']
+			form_data['type'] = st_type
 
 		if 'status' in request.POST:
 			st_status = request.POST['status']
+			form_data['status'] = st_status
 			
 		from_d = request.POST['from']
 		to_d = request.POST['to']
+		
+		form_data['from'] = from_d
+		form_data['to'] = to_d
 		
 		if len(from_d) < 1:
 			messages['Please indicate a date to start the search from'] = 'red'
@@ -571,7 +581,7 @@ def review_requests(request):
 			messages['Please indicate a date to finish the search'] = 'red'
 			
 		if len(messages) > 0:
-			return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status})
+			return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "fields": form_data, "profile":user_profile.pk})
 			
 		from_dt = datetime.strptime(from_d, '%d %B, %Y')
 		to_dt = datetime.strptime(to_d, '%d %B, %Y')
@@ -587,11 +597,11 @@ def review_requests(request):
 		
 		if len(st_status) > 0:
 			if st_status == "pending":
-				req = req.filter(actioned_by__id__isnull = True ).filter(approved = False)
+				req = req.filter(status = 0)
 			elif st_status == "approved":
-				req = req.filter(approved = True)
+				req = req.filter(status = 1)
 			else:
-				req = req.filter(approved = False)
+				req = req.filter(status = 2)
 				
 		if len(st_type) > 0:
 			req = req.filter(event__group__name = st_type)
@@ -600,20 +610,24 @@ def review_requests(request):
 		for r in req:
 			values = []
 			values.append(r.pk)
+			values.append(r.event)
 			values.append(r.user)
 			
-			if r.approved == False and r.actioned_by == None:
+			if r.status == 0:
 				values.append("Pending")
-			elif r.approved == True:
+			elif r.status == 1:
 				values.append("Approved")
 			else:
 				values.append("Rejected")
 				
 			values.append(r.submitted_time)
 			values.append(r.actioned_by)
+
 			try:
-				notes = Shift_Exception_Note.objects.get(shift_exception = r)
-				values.append(notes.note)
+				notes = Shift_Exception_Note.objects.filter(shift_exception = r).order_by('-created_time')[:1]
+				for n in notes:
+					values.append(n.note)
+				
 			except:
 				values.append("No Notes")
 				
@@ -621,6 +635,7 @@ def review_requests(request):
 			results[r.pk] = values
 		#print req.query
 		#print len(req)
-		print results
+		#print results
+		return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "results": results, "fields": form_data, "profile":user_profile.pk})
 			
-	return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "results": results})
+	return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "profile":user_profile.pk})

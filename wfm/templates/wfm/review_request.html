@@ -12,7 +12,66 @@
              .pinned {width: 70%; padding-left: 80px}
         </style>
     {% endblock head_css_page %}
-{% block pagetitle %}Search Quality Call Assurance{% endblock pagetitle %}
+{% block pagetitle %}Review Requests{% endblock pagetitle %}
+
+    {% block head_js %}
+        <script>
+            function actionRequest(id, st){
+                var user_id = '{{user.id}}';
+                user_id = parseInt(user_id);
+                console.log(user_id);
+                var data = {"status": st, "actioned_by": user_id};
+                var shift_exc = "";
+                $.ajax({
+                    url: '/api/shift_exception/' + id + "/",
+                    type: 'PATCH',
+                    headers: {
+                        'X-CSRFToken':'{{ csrf_token }}',
+                        'Content-Type':'application/json'
+                    },
+                    data: JSON.stringify(data),
+                    success: function(result) {
+                        // Do something with the result
+                        if(st == "1"){
+                            $("#approve-" + id).addClass("hide");
+                            $("#reject-" + id).removeClass("hide");
+                        }
+                        if (st == "2"){
+                            $("#reject-" + id).addClass("hide");
+                            $("#approve-" + id).removeClass("hide");
+                        }
+                        Materialize.toast("The request has been updated", 4000, 'green');
+                    }
+                });
+                
+                var notes = "";
+                if(st == "1"){
+                    notes = $("#approved-notes-" + id).val();
+                }
+                if(st == "2"){
+                    notes = $("#rejected-notes-" + id).val();
+                }
+                
+                var profile_id = '{{profile}}';
+                var info = {"shift_exception": parseInt(id), "created_by": parseInt(profile_id), "note": notes};
+                
+                $.ajax({
+                    url: '/api/shift_exception_note/',
+                    type: 'POST',
+                    headers: {
+                        'X-CSRFToken':'{{ csrf_token }}',
+                        'Content-Type':'application/json'
+                    },
+                    data: JSON.stringify(info),
+                    success: function(result) {
+                        // Do something with the result
+                        Materialize.toast("The note has been saved", 4000, 'green');
+                    }
+                });
+                
+            }
+        </script>    
+    {% endblock head_js %}
 {% block content %}
 
     {% if messages %}
@@ -82,11 +141,13 @@
                     <thead>
                         <tr>
                             <th>Request ID</th>
+                            <th>Request</th>
                             <th>Requested by</th>
                             <th>Status</th>
                             <th>Received on</th>
                             <th>Actioned by</th>
                             <th>Notes</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -94,17 +155,45 @@
                             {% for id, values in results.items %}
                                 <tr>
                                 {% for r in values %}
-                                    <th><a href="/quality/form/{{id}}">{{r}}</a></th>
+                                    <th><a>{{r}}</a></th>
                                 {% endfor %}
+                                    <th><a id="approve-{{id}}" class="btn-floating btn-tiny waves-effect waves-light modal-trigger {% if values.3 == 'Approved'  %} hide {% endif %} " href="#modal-approved-{{id}}"><i class="material-icons">check</i></a>
+                                    <a id="reject-{{id}}" class="btn-floating btn-tiny waves-effect waves-light modal-trigger {% if values.3 == 'Rejected'  %} hide {% endif %} " href="#modal-rejected-{{id}}"><i class="material-icons">close</i></a></th>            
                                 </tr>
                             {% endfor %}
                         {% endif %}
                     </tbody>
                 </table> 
             </div>
+            
+            {% if results %}
+                {% for id, values in results.items %}
+                     <div id="modal-approved-{{id}}" class="modal">
+                        <div class="modal-content">
+                          <h4>Please add a note</h4>
+                          <textarea id="approved-notes-{{id}}"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                          <a onClick="actionRequest('{{id}}', 1);" class="modal-action modal-close waves-effect waves-green btn-flat">Save</a>
+                        </div>
+                      </div>
+            
+                    <div id="modal-rejected-{{id}}" class="modal">
+                        <div class="modal-content">
+                          <h4>Please add a note</h4>
+                          <textarea id="rejected-notes-{{id}}"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                          <a onClick="actionRequest('{{id}}', 2);" class="modal-action modal-close waves-effect waves-green btn-flat">Save</a>
+                        </div>
+                      </div>
+            
+                {% endfor %}
+            {% endif %}
+            
             <div class="row">
                 <div class="col s2">
-                    <button class="btn waves-effect waves-light" type="submit" name="action" value="submit">Search<i class="material-icons right">send</i></button>
+                    <button class="btn waves-effect waves-light  " type="submit" name="action" value="submit">Search<i class="material-icons right">send</i></button>
                 </div>
                 
                 <div class="col s2">
@@ -121,7 +210,7 @@
     
     <script>
         $(document).ready(function() {
-            
+            $('.modal').modal();
             $('.blockPinned').pushpin({
               top: 100,
               offset: 30,
@@ -155,17 +244,17 @@
             {% for field, value in fields.items %}
                 $('#{{field}}').val('{{value}}');
             {% endfor %}
-            
-            {%for field, value in dropdowns.items %}
-                $('#{{field}}').val('{{value}}').trigger('change');
-                $('#{{field}}').material_select(); 
-            {% endfor %}
         
         {% endif %}
+        
+        $('#agent_id').material_select(); 
+        $('#type').material_select(); 
+        $('#status').material_select(); 
         
         $('#dateCall').pickadate({ dateFormat: 'yyyy-mm-dd',  formatSubmit: 'yyyy-mm-dd',});
             
             });
+             
     </script>
 {% endblock content %}
     

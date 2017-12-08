@@ -91,8 +91,7 @@ class Shift_Exception(models.Model):
     submitted_time = models.DateTimeField(default=timezone.now)
     actioned_time = models.DateTimeField(default=timezone.now, blank=True)
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
-    approved = models.BooleanField(default=False)
-    
+    status = models.DecimalField(max_digits=1, decimal_places=0, default=0)    
         
     def __str__(self):              # __unicode__ on Python 2
         return str(self.event)
