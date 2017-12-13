@@ -7,7 +7,7 @@ Created on Wed Nov 08 07:42:54 2017
 from __future__ import unicode_literals
 
 
-from wfm.models import Shift, Profile, Shift_Exception, Job, Shift_Sequence, Job_Status, Event
+from wfm.models import Shift, Profile, Shift_Exception, Job, Shift_Sequence, Job_Status, Event, Log, Log_Type
 from django.contrib.auth.models import User
 from datetime import timedelta, datetime, date
 from celery import shared_task
@@ -34,6 +34,12 @@ def runsaveShiftBreaks():
 	for jb in j:
 		jb.status = sr
 		jb.save()
+
+		l_t = Log_Type.objects.get(name = "Update_Job")
+		log_info = {"id": jb.id, "status":jb.status}
+		l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()		
+		
 		sDate = jb.from_date
 		eDate = jb.to_date
 		cUser = jb.agents
@@ -54,9 +60,17 @@ def runsaveShiftBreaks():
 				saveBreaks(sDate, eDate, cUser, aUser)
 			jb.status = sts
 			jb.save()
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"id": jb.id, "status":jb.status}
+			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 		except:
 			jb.status = stf
 			jb.save()
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"id": jb.id, "status":jb.status}
+			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 	calculateSLA(sDate, eDate)
 
 @shared_task
@@ -71,6 +85,12 @@ def runsaveShift():
 	for jb in j:
 		jb.status = sr
 		jb.save()
+
+		l_t = Log_Type.objects.get(name = "Update_Job")
+		log_info = {"id": jb.id, "status":jb.status}
+		l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()		
+		
 		sDate = jb.from_date
 		eDate = jb.to_date
 		cUser = jb.agents
@@ -89,9 +109,19 @@ def runsaveShift():
 				saveShifts(sDate, eDate, cUser, aUser)
 			jb.status = sts
 			jb.save()
+			
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"id": jb.id, "status":jb.status}
+			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 		except:
 			jb.status = stf
 			jb.save()
+			
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"id": jb.id, "status":jb.status}
+			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 			
 	calculateSLA(sDate, eDate)
 	
@@ -107,6 +137,12 @@ def runsaveMeetings():
 	for jb in j:
 		jb.status = sr
 		jb.save()
+
+		l_t = Log_Type.objects.get(name = "Update_Job")
+		log_info = {"id": jb.id, "status":jb.status}
+		l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()		
+		
 		sDate = jb.from_date
 		eDate = jb.to_date
 		cUser = jb.agents
@@ -125,9 +161,19 @@ def runsaveMeetings():
 				saveMeetings(sDate, eDate, cUser, aUser, jb.parameters)
 			jb.status = sts
 			jb.save()
+			
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"id": jb.id, "status":jb.status}
+			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 		except:
 			jb.status = stf
 			jb.save()
+			
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"id": jb.id, "status":jb.status}
+			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 	calculateSLA(sDate, eDate)
 			
 def saveShifts(sDate, eDate, cUser, aUser):
@@ -189,6 +235,11 @@ def saveShifts(sDate, eDate, cUser, aUser):
 					
 					sh = Shift_Sequence(user = profile, start_date_time = stDate, start_diff = int(s.day_model.day_start_diff), end_date_time = etDate, end_diff = int(s.day_model.day_end_diff), actioned_by = auser)
 					sh.save()
+					
+					l_t = Log_Type.objects.get(name = "Add_Shift_Sequence")
+					log_info = {"user": profile, "start_date_time": stDate, "start_diff": str(s.day_model.day_start_diff), "end_date_time": etDate, "end_diff": str(s.day_model.day_end_diff), "actioned_by": auser}
+					l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
+					l.save()
 				except:
 					print "Unexpected error:", sys.exc_info()[0]
 					pass
@@ -266,6 +317,12 @@ def runsaveBreaks():
 	for jb in j:
 		jb.status = sr
 		jb.save()
+		
+		l_t = Log_Type.objects.get(name = "Update_Job")
+		log_info = {"id": jb.id, "status":jb.status}
+		l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()	
+		
 		sDate = jb.from_date
 		eDate = jb.to_date
 		cUser = jb.agents
@@ -285,9 +342,19 @@ def runsaveBreaks():
 				saveBreaks(sDate, eDate, cUser, aUser)
 			jb.status = sts
 			jb.save()
+			
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"id": jb.id, "status":jb.status}
+			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()	
 		except:
 			jb.status = stf
 			jb.save()
+			
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"id": jb.id, "status":jb.status}
+			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()	
 			
 	calculateSLA(sDate, eDate)
 	
@@ -363,6 +430,11 @@ def saveMeetings(sDate, eDate, cUser, aUser, parameters):
 	s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = e, start_date_time = bestTime, start_diff = start_dif, end_date_time = meetingTime_end, end_diff = end_dif, actioned_by = auser, status = 1)
 	
 	s_ex_l.save()
+	
+	l_t = Log_Type.objects.get(name = "Add_Shift_Exceptionb")
+	log_info = {"user": profile, "shift_sequence": s, "event": e, "start_date_time": bestTime, "start_diff": start_dif, "end_date_time": meetingTime_end, "end_diff": end_dif, "actioned_by": auser, "status": 1}
+	l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
+	l.save()	
 		
 	cur.close()
 	
@@ -415,21 +487,21 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		
 		duration = 15
 
-		bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration)
+		bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, profile)
 		
 		b_time_start = business_day + timedelta(minutes=210)		
 		b_time_end = business_day + timedelta(minutes=300)
 		
 		duration = 30
 
-		bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration)
+		bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, profile)
 		
 		b_time_start = business_day + timedelta(minutes=360)		
 		b_time_end = business_day + timedelta(minutes=435)
 		
 		duration = 15
 		
-		bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration)
+		bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, profile)
 		
 		ev_b = Event.objects.get(name="Break")
 		ev_l = Event.objects.get(name="Lunch")
@@ -445,11 +517,21 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		s_ex = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak1, start_diff = start_dif, end_date_time = bestTimeBreak1_end, end_diff = end_dif, actioned_by = auser, status = 1)
 		s_ex.save()
 		
+		l_t = Log_Type.objects.get(name = "Add_Shift_Exceptionb")
+		log_info = {"user": profile, "shift_sequence": s, "event": ev_b, "start_date_time": bestTimeBreak1, "start_diff": start_dif, "end_date_time": bestTimeBreak1_end, "end_diff": end_dif, "actioned_by": auser, "status": 1}
+		l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()
+		
 		bestTimeBreak2_end = bestTimeBreak2 + timedelta(minutes=15)
 		start_dif = business_day.day - bestTimeBreak2.day
 		end_dif = business_day.day - bestTimeBreak2_end.day
 		s_ex_2 = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak2, start_diff = start_dif, end_date_time = bestTimeBreak2_end, end_diff = end_dif, actioned_by = auser, status = 1)
 		s_ex_2.save()
+		
+		l_t = Log_Type.objects.get(name = "Add_Shift_Exceptionb")
+		log_info = {"user": profile, "shift_sequence": s, "event": ev_b, "start_date_time": bestTimeBreak2, "start_diff": start_dif, "end_date_time": bestTimeBreak2_end, "end_diff": end_dif, "actioned_by": auser, "status": 1}
+		l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()
 		
 		bestTimeLunch_end = bestTimeLunch + timedelta(minutes=30)
 		start_dif = business_day.day - bestTimeLunch.day
@@ -457,10 +539,15 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, status = 1)
 		s_ex_l.save()
 		
+		l_t = Log_Type.objects.get(name = "Add_Shift_Exceptionb")
+		log_info = {"user": profile, "shift_sequence": s, "event": ev_b, "start_date_time": bestTimeLunch, "start_diff": start_dif, "end_date_time": bestTimeLunch_end, "end_diff": end_dif, "actioned_by": auser, "status": 1}
+		l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()
+		
 	cur.close()
 		
 		
-def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, override=False):
+def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, pro, override=False):
 	c = connection.cursor()
 	
 	duration = int(duration)
@@ -489,7 +576,7 @@ def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, overrid
 			while i < intervals:
 				m = 15 * i
 				date_in = r[0] + timedelta(minutes=m)
-				s_e = ShifT_Exception.object.filter(start_date_time__lte = date_in).filter(end_date_time__gte = r[0]).filter(user=pro)
+				s_e = Shift_Exception.object.filter(start_date_time__lte = date_in).filter(end_date_time__gte = r[0]).filter(user=pro)
 				if len(s_e) > 0:
 					if r[0] in diff:
 

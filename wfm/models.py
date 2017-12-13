@@ -104,3 +104,20 @@ class Shift_Exception_Note(models.Model):
 	
     def __str__(self):              # __unicode__ on Python 2
         return str(self.created_by.first_name) + " " + str(self.created_by.last_name)
+								
+class Log_Type(models.Model):
+    name = models.CharField(max_length=50)
+				
+    def __str__(self):
+        return str(self.name)
+								
+class Log(models.Model):
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_time = models.DateTimeField(default=timezone.now)
+    shift_sequence = models.ForeignKey(Shift_Sequence, on_delete=models.CASCADE, blank=True, default=None)
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, blank=True, default=None)
+    log_type = models.ForeignKey(Log_Type, on_delete=models.CASCADE)
+    log_info = models.TextField()
+				
+    def __str__(self):              # __unicode__ on Python 2
+        return self.event_type.name + " " + self.created_by.first_name

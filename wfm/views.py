@@ -67,6 +67,13 @@ def scheduler(request, action = False):
 		
 			j.save()
 			
+			l_t = Log_Type.objects.get(name = "Add_Job")
+			
+			log_info = {"job_type":actions, "from_date": start_date, "to_date": end_date, "agents":agent, "status":st, "actioned_by": request.user}
+			
+			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
+			
 			response = {"status":"success", "job status": j.status.name}
 		elif len(j) > 0 and action == "stop":
 			st = Job_Status.objects.get(name="Success")
@@ -74,6 +81,12 @@ def scheduler(request, action = False):
 			jo.status = st
 			jo.save()
 			response = {"status":"success", "job status": jo.status.name}
+			
+			l_t = Log_Type.objects.get(name = "Update_Job")
+			log_info = {"job_type":jo.job_type, "from_date": jo.from_date, "to_date": jo.to_date, "agents":jo.agents, "status":jo.status, "actioned_by": jo.actioned_by}
+			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
+			
 		elif len(j) == 1:
 			response = {"status":"error", "message":"already running"}
 		else:
@@ -137,6 +150,12 @@ def schedule_job(request):
 				parameters = json.dumps(param))
 			
 			j.save()
+			
+			l_t = Log_Type.objects.get(name = "Add_Job")
+			log_info = {"job_type":j.job_type, "from_date": j.from_date, "to_date": j.to_date, "agents":j.agents, "status":j.status, "actioned_by": j.actioned_by}
+			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
+			
 		messages['The job ' + request.POST['action'] + ' has been saved'] = "green"
 		
 		if actions[0] == 'Insert_Shifts':
@@ -384,6 +403,11 @@ def addAgent(request):
 			
 			
 			new_agent.save()
+			
+			l_t = Log_Type.objects.get(name = "Add_Agent")
+			log_info = {"User":new_agent.user, "first_name": new_agent.first_name, "last_name": new_agent.last_name, "groups":new_agent.groups}
+			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 		
 	agents = User.objects.filter(Q(groups__name = 'Agent') | Q(groups__name = 'Supervisor') | Q(groups__name = 'TeamLead'))
 	groups = Group.objects.all()	
@@ -522,8 +546,18 @@ def add_event(request, ev=False):
 		
 		event_obj.save()
 		
+		l_t = Log_Type.objects.get(name = "Add_Event")
+		log_info = {"user": profile, "shift_sequence": sh_f, "event": eve_obj, "start_date_time": from_dt, "start_diff": s_diff.days, "end_date_time": to_dt, "end_diff": e_diff.days}
+		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()
+		
 		n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
 		n.save()
+		
+		l_t = Log_Type.objects.get(name = "Add_Event_Note")
+		log_info = {"shift_exception": event_obj, "note": notes, "created_by": profile}
+		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()
 		
 		messages['Your request has been submitted'] = "green"
 	
