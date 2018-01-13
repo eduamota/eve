@@ -673,3 +673,6 @@ def review_requests(request):
 		return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "results": results, "fields": form_data, "profile":user_profile.pk})
 			
 	return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "profile":user_profile.pk})
+
+def agentBoard(request):
+    return render(request, 'wfm/agent.html', {"actions":request_actions,})

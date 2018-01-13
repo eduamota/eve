@@ -88,6 +88,7 @@ class Shift_Exception(models.Model):
     start_diff = models.DecimalField(max_digits=1, decimal_places=0)
     end_date_time = models.DateTimeField()
     end_diff = models.DecimalField(max_digits=1, decimal_places=0)
+    approved = models.BooleanField(default=True)
     submitted_time = models.DateTimeField(default=timezone.now)
     actioned_time = models.DateTimeField(default=timezone.now, blank=True)
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)

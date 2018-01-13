@@ -46,5 +46,6 @@ urlpatterns = [
 	url(r'^api/otrs/', include('otrs_connector.urls')),
 	url(r'^quality/', include('quality.urls')),
 	url(r'^wfm/', include('wfm.urls')),
+	url(r'^client/', include('clients.urls')),
 	url(r'^$', views.dashboard),
 ]

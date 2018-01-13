@@ -16,4 +16,5 @@ urlpatterns = [
 	url(r'^settz/$', views.set_timezone),
 	url(r'^request/(?P<ev>[a-zA-Z]+)$', views.add_event),
 	url(r'^review/requests$', views.review_requests),
+	url(r'^agent/$', views.agentBoard),
 ]

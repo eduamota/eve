@@ -1,0 +1,136 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Client Form{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+
+        body {
+            
+            padding: 0;
+            font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+            font-size: 14px;
+        }
+
+    </style>
+    {% endblock head_css_page %}
+
+{% block head_js %}
+{% endblock head_js %}
+{% block pagetitle %}Client Form{% endblock pagetitle %}
+{% block content %}
+    <div id='header'>
+        <span>{{ name }}</span>
+    </div>
+    <div class="">   
+        <div class="row s12">
+            <form action="/your-name/" method="post">
+                {% csrf_token %}
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.name.errors }}
+                        {{ form.name.label_tag }}
+                        {{ form.name }}
+                    </div>
+                    <div class="fieldWrapper col s4 offset-s4">
+                        {{ form.branded.errors }}
+                        {{ form.branded }}
+                        {{ form.branded.label_tag }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.payments.errors }}
+                        {{ form.payments.label_tag }}
+                        {{ form.payments }}
+                    </div>
+                    <div class="fieldWrapper col s4 offset-s4">
+                        {{ form.hw_support_t1.errors }}
+                        {{ form.hw_support_t1 }}
+                        {{ form.hw_support_t1.label_tag }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.support_language.errors }}
+                        {{ form.support_language.label_tag }}
+                        {{ form.support_language }}
+                    </div>
+                    <div class="fieldWrapper col s4 offset-s4">
+                        {{ form.hw_support_t2.errors }}
+                        {{ form.hw_support_t2 }}
+                        {{ form.hw_support_t2.label_tag }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.domain.errors }}
+                        {{ form.domain.label_tag }}
+                        {{ form.domain }}
+                    </div>
+                    <div class="fieldWrapper col s4 offset-s4">
+                        {{ form.custom_contact_info.errors }}
+                        {{ form.custom_contact_info }}
+                        {{ form.custom_contact_info.label_tag }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.payment_model.errors }}
+                        {{ form.payment_model.label_tag }}
+                        {{ form.payment_model }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.wallet_number.errors }}
+                        {{ form.wallet_number.label_tag }}
+                        {{ form.wallet_number }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.phone_numbers.errors }}
+                        {{ form.phone_numbers.label_tag }}
+                        {{ form.phone_numbers }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.email_address.errors }}
+                        {{ form.email_address.label_tag }}
+                        {{ form.email_address }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.chat_float_window.errors }}
+                        {{ form.chat_float_window.label_tag }}
+                        {{ form.chat_float_window }}
+                    </div>
+                </div>
+                <div class="row s12">
+                    <div class="fieldWrapper col s4">
+                        {{ form.additional_comments.errors }}
+                        {{ form.additional_comments.label_tag }}
+                        {{ form.additional_comments }}
+                    </div>
+                </div>
+                <input type="submit" value="Submit" class="col s1"/>
+            </form>
+            
+        </div>
+    </div>
+{% endblock content %}
+
+{% block footer_javascript_page %}
+<script>
+$(document).ready(function() {
+    $('select').material_select();
+  });
+</script>
+
+{% endblock footer_javascript_page %}
