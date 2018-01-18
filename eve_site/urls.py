@@ -39,7 +39,7 @@ urlpatterns = [
 	url(r'^api/', include(router.urls)),
 	url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 	url(r'^admin/', admin.site.urls),
-	url(r'^dashboard/', views.dashboard),
+	url(r'^dashboard/', views.home_page),
 	url(r'^phone/', include('phone.urls')),
 	url(r'^accounts/login/$', auth_views.LoginView.as_view(), name="login"),
 	url(r'^accounts/logout/$', auth_views.LogoutView.as_view(), {'next_page': '/accounts/login/',}),
@@ -47,5 +47,5 @@ urlpatterns = [
 	url(r'^quality/', include('quality.urls')),
 	url(r'^wfm/', include('wfm.urls')),
 	url(r'^client/', include('clients.urls')),
-	url(r'^$', views.dashboard),
+	url(r'^$', views.home_page, name="home_page"),
 ]

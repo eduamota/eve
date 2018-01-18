@@ -19,6 +19,16 @@
     {% endblock head_css_page %}
 
 {% block head_js %}
+<script type="text/javascript">
+    function changeClient(obj){
+        urlString = "http://localhost:8000/client/client/"
+        var selectedClient = obj.value;
+        
+        if (selectedClient.value != ""){
+            window.location = urlString + selectedClient;
+        }
+    }
+</script>
 {% endblock head_js %}
 {% block pagetitle %}Client Form{% endblock pagetitle %}
 {% block content %}
@@ -26,103 +36,147 @@
         <span>{{ name }}</span>
     </div>
     <div class="">   
-        <div class="row s12">
-            <form action="/your-name/" method="post">
+        <div class="row">
+            <form action="" method="post">
+                <div class="col s8">
                 {% csrf_token %}
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
-                        {{ form.name.errors }}
-                        {{ form.name.label_tag }}
-                        {{ form.name }}
+                    
+                    <div class="fieldWrapper col s6">
+                        {{ form.client.errors }}
+                        {{ form.client.label_tag }}
+                        {{ form.client }}
                     </div>
-                    <div class="fieldWrapper col s4 offset-s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.branded.errors }}
                         {{ form.branded }}
                         {{ form.branded.label_tag }}
                     </div>
                 </div>
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.payments.errors }}
                         {{ form.payments.label_tag }}
                         {{ form.payments }}
                     </div>
-                    <div class="fieldWrapper col s4 offset-s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.hw_support_t1.errors }}
                         {{ form.hw_support_t1 }}
                         {{ form.hw_support_t1.label_tag }}
                     </div>
                 </div>
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.support_language.errors }}
                         {{ form.support_language.label_tag }}
                         {{ form.support_language }}
                     </div>
-                    <div class="fieldWrapper col s4 offset-s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.hw_support_t2.errors }}
                         {{ form.hw_support_t2 }}
                         {{ form.hw_support_t2.label_tag }}
                     </div>
                 </div>
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.domain.errors }}
                         {{ form.domain.label_tag }}
                         {{ form.domain }}
                     </div>
-                    <div class="fieldWrapper col s4 offset-s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.custom_contact_info.errors }}
                         {{ form.custom_contact_info }}
                         {{ form.custom_contact_info.label_tag }}
                     </div>
                 </div>
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.payment_model.errors }}
                         {{ form.payment_model.label_tag }}
                         {{ form.payment_model }}
                     </div>
+                    <div class="fieldWrapper col s6">
+                        {{ form.first_registration.errors }}
+                        {{ form.first_registration.label_tag }}
+                        {{ form.first_registration }}
+                    </div>
                 </div>
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.wallet_number.errors }}
                         {{ form.wallet_number.label_tag }}
                         {{ form.wallet_number }}
                     </div>
+                    <div class="fieldWrapper col s6">
+                        {{ form.first_payment.errors }}
+                        {{ form.first_payment.label_tag }}
+                        {{ form.first_payment }}
+                    </div>
                 </div>
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.phone_numbers.errors }}
                         {{ form.phone_numbers.label_tag }}
                         {{ form.phone_numbers }}
                     </div>
                 </div>
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.email_address.errors }}
                         {{ form.email_address.label_tag }}
                         {{ form.email_address }}
                     </div>
                 </div>
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
+                    <div class="fieldWrapper col s6">
                         {{ form.chat_float_window.errors }}
                         {{ form.chat_float_window.label_tag }}
                         {{ form.chat_float_window }}
                     </div>
                 </div>
+                
                 <div class="row s12">
-                    <div class="fieldWrapper col s4">
-                        {{ form.additional_comments.errors }}
-                        {{ form.additional_comments.label_tag }}
-                        {{ form.additional_comments }}
+                    <div class="fieldWrapper col s6">
+                        {{ form.change_by }}
                     </div>
                 </div>
-                <input type="submit" value="Submit" class="col s1"/>
+                <input type="submit" value="Submit" name="action" class="col s1 btn waves-effect waves-light"/>
+                </div>
+                <div class="col s4">
+                    {% for c in comm %}
+                        <div class="row s12">
+                            <div class="fieldWrapper col">
+                                <p>
+                                <span>{{ c.change_by.first_name }} {{ c.change_by.last_name }} on {{ c.change_time }} :</span>
+                                    <span>{{ c.comments }}</span></p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="row s12">
+                    <div class="fieldWrapper col">
+                        {{ form2.comments.errors }}
+                        {{ form2.comments.label_tag }}
+                        {{ form2.comments }}
+                    </div>
+                </div>
+                    <div class="row s12">
+                        <div class="fieldWrapper col">
+                            {{ form2.client }}
+                        </div>
+                    </div>
+                        
+                    <div class="row s12">
+                        <div class="fieldWrapper col">
+                            {{ form2.change_by }}
+                        </div>
+                    </div>
+                    
+                </div>
             </form>
             
         </div>
+        
     </div>
 {% endblock content %}
 
@@ -130,6 +184,16 @@
 <script>
 $(document).ready(function() {
     $('select').material_select();
+    $('.datepicker').pickadate({
+    selectMonths: true, // Creates a dropdown to control month
+    selectYears: 2, // Creates a dropdown of 15 years to control year,
+    today: 'Today',
+    clear: 'Clear',
+    close: 'Ok',
+    format: 'mmmm dd, yy',
+    formatSubmit: 'yyyy-mm-dd',
+    closeOnSelect: true // Close upon selecting a date,
+  });
   });
 </script>
 

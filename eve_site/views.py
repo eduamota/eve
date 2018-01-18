@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 
 from django.shortcuts import render
 
-def dashboard(request):
+def home_page(request):
 	
 	
 	return render(request, 'site/dashboard.html')

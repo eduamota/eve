@@ -1,0 +1,62 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Client Form{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+
+        body {
+            
+            padding: 0;
+            font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+            font-size: 14px;
+        }
+
+    </style>
+    {% endblock head_css_page %}
+
+{% block head_js %}
+{% endblock head_js %}
+{% block pagetitle %}Client Form{% endblock pagetitle %}
+{% block content %}
+{% if errors %}
+        
+        {% for field, value in errors.items %}
+            <script>Materialize.toast('Error: {{field}}', 4000, 'red');</script>
+        {% endfor %}
+        
+    {% endif %}
+
+    <div id='header'>
+        <span>{{ name }}</span>
+    </div>
+    <div class="">   
+        <div class="row s12">
+            <form action="" method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Submit" name="action" class="col s1 btn waves-effect waves-light"/>
+</form>
+            
+        </div>
+    </div>
+{% endblock content %}
+
+{% block footer_javascript_page %}
+<script>
+$(document).ready(function() {
+    $('select').material_select();
+    $('.datepicker').pickadate({
+    selectMonths: true, // Creates a dropdown to control month
+    selectYears: 2, // Creates a dropdown of 15 years to control year,
+    today: 'Today',
+    clear: 'Clear',
+    close: 'Ok',
+    closeOnSelect: true // Close upon selecting a date,
+  });
+  });
+</script>
+
+{% endblock footer_javascript_page %}
