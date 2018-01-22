@@ -42,10 +42,11 @@ urlpatterns = [
 	url(r'^dashboard/', views.home_page),
 	url(r'^phone/', include('phone.urls')),
 	url(r'^accounts/login/$', auth_views.LoginView.as_view(), name="login"),
-	url(r'^accounts/logout/$', auth_views.LogoutView.as_view(), {'next_page': '/accounts/login/',}),
+	url(r'^accounts/logout/$', auth_views.LogoutView.as_view(), {'next_page': '/',}),
 	url(r'^api/otrs/', include('otrs_connector.urls')),
 	url(r'^quality/', include('quality.urls')),
 	url(r'^wfm/', include('wfm.urls')),
 	url(r'^client/', include('clients.urls')),
+	url(r'^agent/', views.agent_dashboard, name="agent_dashboard"),
 	url(r'^$', views.home_page, name="home_page"),
 ]

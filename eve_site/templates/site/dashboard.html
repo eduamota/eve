@@ -54,6 +54,45 @@
             </div>
         </div>
     </div>
+    <div class="row">
+        <div class="col s12">
+            <div class="card horizontal">
+                <div class="card-image">
+                    {% load static %}
+                    <img src="{% static '\wfm-icon.png' %}">
+                </div>
+                <div class="card-stacked">
+                    <div class="card-content">
+                        <p>Workforce Management</p>
+                    </div>
+                    <div class="card-action">
+                        <a href="/wfm/calendar">My Schedule</a>
+                        <a href="/wfm/calendar/team">Team Schedule</a>
+                        <a href="/wfm/request/">Requests</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col s12">
+            <div class="card horizontal">
+                <div class="card-image">
+                    {% load static %}
+                    <img src="{% static '\client-icon.png' %}">
+                </div>
+                <div class="card-stacked">
+                    <div class="card-content">
+                        <p>Workforce Management</p>
+                    </div>
+                    <div class="card-action">
+                        <a href="/client/add">Add New Client</a>
+                        <a href="/client/client">Edit Client Info</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock content %}
     

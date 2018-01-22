@@ -30,3 +30,4 @@ class HomePageTest(TestCase):
 		response = self.client.get('/')
 		self.assertTemplateUsed(response, 'site/dashboard.html')
 		self.assertTemplateUsed(response, 'site/base.html')
+		
