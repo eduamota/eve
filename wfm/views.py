@@ -7,12 +7,12 @@ from django.contrib.auth.models import User, Group
 from datetime import timedelta, datetime, date
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from .tasks import runsaveShift, runsaveBreaks, runsaveShiftBreaks, runsaveMeetings
 from django.db import connection
 from django.db.models import Q
 import pytz
-from datetime import datetime
+from .tasks import runsaveShift, runsaveBreaks, runsaveShiftBreaks, runsaveMeetings
 import json
+from django.views.decorators.csrf import csrf_exempt
 
 request_actions = {"../request/Timeoff":"Request Time Off",
 			"../request/Overtime":"Request Overtime",
@@ -22,81 +22,12 @@ request_actions = {"../request/Timeoff":"Request Time Off",
 def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
 	return next_month - timedelta(days=next_month.day)
-
-@login_required
-def add_jobs(request):
-	if 'action' in request.POST and request.POST['action']:
-		j = Job(job_type = request.POST['action'],
-			from_date = request.POST['from'],
-			to_date = request.POST['to'],
-			agents = str(request.POST['agent']), 
-			actioned_by = request.user)
-	#print j
-	
-	return render(request, 'wfm/add_job.html')
-			
-	
-def scheduler(request, action = False):
-	messages = {}
-	response = {}
-
-	if action:			
-		actions = "Scheduler"
-		start_date = '1990-01-01'
-		end_date = '1990-01-02'
-		agent = 0
-		
-		start_date = datetime.strptime(start_date, '%Y-%m-%d')
-		end_date = datetime.strptime(end_date, '%Y-%m-%d')
-		
-		start_date = start_date.astimezone('UTC')
-		end_date = end_date.astimezone('UTC')
-		
-		st = Job_Status.objects.get(name="Running")
-		
-		j = Job.objects.filter(status = st, job_type = "Scheduler")
-		#runScheduler()
-		if len(j) == 0 and action == "run":
-		#if action == "run":
-			j = Job(job_type = actions,
-				from_date = start_date,
-				to_date = end_date,
-				agents = agent,
-				status = st,
-				actioned_by = request.user)
-		
-			j.save()
-			
-			l_t = Log_Type.objects.get(name = "Add_Job")
-			
-			log_info = {"job_type":actions, "from_date": start_date, "to_date": end_date, "agents":agent, "status":st, "actioned_by": request.user}
-			
-			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
-			
-			response = {"status":"success", "job status": j.status.name}
-		elif len(j) > 0 and action == "stop":
-			st = Job_Status.objects.get(name="Success")
-			jo = j[0]
-			jo.status = st
-			jo.save()
-			response = {"status":"success", "job status": jo.status.name}
-			
-			l_t = Log_Type.objects.get(name = "Update_Job")
-			log_info = {"job_type":jo.job_type, "from_date": jo.from_date, "to_date": jo.to_date, "agents":jo.agents, "status":jo.status, "actioned_by": jo.actioned_by}
-			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
-			
-		elif len(j) == 1:
-			response = {"status":"error", "message":"already running"}
-		else:
-			response = {"status":"error", "message":"scheduler not runnig"}
-			
-		messages['The job ' + action + ' has been saved'] = "green"
-	return JsonResponse(response, safe=False)
 	
 @login_required
 def schedule_job(request):
+	'''
+	
+	'''
 	agents = User.objects.filter(groups__name = 'Agent')
 	agent_list = {0:"All"}
 
@@ -152,20 +83,20 @@ def schedule_job(request):
 			j.save()
 			
 			l_t = Log_Type.objects.get(name = "Add_Job")
-			log_info = {"job_type":j.job_type, "from_date": j.from_date, "to_date": j.to_date, "agents":j.agents, "status":j.status, "actioned_by": j.actioned_by}
+			log_info = {"job_type": str(j.job_type), "from_date": str(j.from_date), "to_date": str(j.to_date), "agents": str(j.agents), "status": str(j.status), "actioned_by": str(j.actioned_by)}
 			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
 			l.save()
 			
 		messages['The job ' + request.POST['action'] + ' has been saved'] = "green"
 		
 		if actions[0] == 'Insert_Shifts':
-			runsaveShift.delay()
+			runsaveShift()
 		elif actions[0] == 'Add_Breaks_and_Lunches':
-			runsaveBreaks.delay()
+			runsaveBreaks()
 		elif actions[0] == 'Insert_Shifts_&_Breaks':
-			runsaveShiftBreaks.delay()
+			runsaveShiftBreaks()
 		elif actions[0] == 'Schedule_a_Meeting':
-			runsaveMeetings.delay()
+			runsaveMeetings()
 	
 	return render(request, 'wfm/add_exceptions.html', {'agent_list': agent_list, 'event_list': event_list, "messages": messages})
 	
@@ -447,6 +378,7 @@ def add_event(request, ev=False):
 	
 	messages = {}
 	tz = pytz.timezone(request.user.profile.location.iso_name)
+	cuser = request.user.profile
 
 	events = ""
 	if not ev:
@@ -454,7 +386,7 @@ def add_event(request, ev=False):
 	else:
 		events = Event.objects.filter(group__name = str(ev))
 	event_list = {}
-	for e in events:
+	for e in events:	
 		event_list[e.pk] = e.name 
 
 	if request.POST:
@@ -529,25 +461,26 @@ def add_event(request, ev=False):
 			return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data})
 		
 		sh_f = ''
+		s_diff = 0
+		e_diff = to_dt - from_dt
 		
 		try:
 			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)[0]
 		except:
-			messages['There is no shift for these dates'] = "red"
-			return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data})
+			sh_f = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
+			sh_f.save()
 		
-		s_diff = from_dt - sh_f.start_date_time
-		e_diff = sh_f.end_date_time - to_dt
+		
 		
 		eve_obj = Event.objects.get(pk = eve)
 			
 		
-		event_obj = Shift_Exception(user = profile, shift_sequence = sh_f, event = eve_obj, start_date_time = from_dt, start_diff = s_diff.days, end_date_time = to_dt, end_diff = e_diff.days )
+		event_obj = Shift_Exception(user = profile, shift_sequence = sh_f, event = eve_obj, start_date_time = from_dt, start_diff = s_diff.days, end_date_time = to_dt, end_diff = e_diff.days, approved=False, actioned_by = cuser, status = 0 )
 		
 		event_obj.save()
 		
 		l_t = Log_Type.objects.get(name = "Add_Event")
-		log_info = {"user": profile, "shift_sequence": sh_f, "event": eve_obj, "start_date_time": from_dt, "start_diff": s_diff.days, "end_date_time": to_dt, "end_diff": e_diff.days}
+		log_info = {"user": str(profile), "shift_sequence": str(sh_f), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff.days), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
 		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
 		l.save()
 		
@@ -555,7 +488,7 @@ def add_event(request, ev=False):
 		n.save()
 		
 		l_t = Log_Type.objects.get(name = "Add_Event_Note")
-		log_info = {"shift_exception": event_obj, "note": notes, "created_by": profile}
+		log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
 		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
 		l.save()
 		
@@ -676,3 +609,16 @@ def review_requests(request):
 
 def agentBoard(request):
     return render(request, 'wfm/agent.html', {"actions":request_actions,})
+
+@csrf_exempt
+def changeException(request):
+    if request.body:
+        data = json.loads(request.body)
+        p = data['profile']
+        e = data['event']
+        t = data['title']
+        if t == 'Shift':
+            return JsonResponse({'Status':"OK", 'data':"This is a shift change"}, safe=False)
+        else:
+            return JsonResponse({'Status':"OK", 'data':"This is an exception change"}, safe=False)
+    return JsonResponse({'Status':"Failed",}, safe=False)

@@ -31,6 +31,7 @@
     <script>
 
 	   $(document).ready(function() {
+        $('.modal').modal();   
 		$('#calendar').fullCalendar({
             height: 700,
             contentHeight: 700,
@@ -49,12 +50,15 @@
             views: {
                 timelineDay: {
                     buttonText: "Day",
+                    snapDuration: '00:05:00',
                 },
                 timelineWeek: {
                     buttonText: "Week",
+                    snapDuration: '00:05:00',
                 },
                 timelineMonth: {
                     buttonText: "Month",
+                    snapDuration: '00:05:00',
                 },
             },
             resources: {
@@ -68,19 +72,65 @@
                 },
             eventDrop: function(event, delta, revertFunc) {
 
-                //alert(event.title + " was dropped on " + event.start.format());
-
                 if (!confirm("Are you sure about this change?")) {
                     revertFunc();
+                }
+                else{
+                    
+                    var theUrl = "/wfm/change/";
+                    var json_upload = JSON.stringify({profile:event.resourceId, event:event.id, start: event.start, end: event.end, title: event.title});
+                    
+                    var xmlHttp = new XMLHttpRequest();
+                    
+                    xmlHttp.onreadystatechange = function() { 
+                        if (xmlHttp.readyState == 4 && xmlHttp.status == 200){
+                            var stat = JSON.parse(xmlHttp.responseText);
+                            if(stat.Status == 'OK'){
+                                Materialize.toast(stat.data, 4000);
+                            }
+                            else{
+                                Materialize.toast(stat.data, 4000);
+                            }
+                        }
+                        
+                            
+                    }
+                    xmlHttp.open("POST", theUrl, true); // true for asynchronous 
+                    xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencodeds");
+                    xmlHttp.send(json_upload);
+                    
                 }
 
             },
             eventResize: function(event, delta, revertFunc) {
 
-                alert(event.title + " end is now " + event.end.format());
-
-                if (!confirm("is this okay?")) {
+                if (!confirm("Are you sure about this change?")) {
                     revertFunc();
+                }
+                else{
+                    
+                    var theUrl = "/wfm/change/";
+                    var json_upload = JSON.stringify({profile:event.resourceId, event:event.id, start: event.start, end: event.end, title: event.title});
+                    
+                    var xmlHttp = new XMLHttpRequest();
+                    
+                    xmlHttp.onreadystatechange = function() { 
+                        if (xmlHttp.readyState == 4 && xmlHttp.status == 200){
+                            var stat = JSON.parse(xmlHttp.responseText);
+                            if(stat.Status == 'OK'){
+                                Materialize.toast(stat.data, 4000);
+                            }
+                            else{
+                                Materialize.toast(stat.data, 4000);
+                            }
+                        }
+                        
+                            
+                    }
+                    xmlHttp.open("POST", theUrl, true); // true for asynchronous 
+                    xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencodeds");
+                    xmlHttp.send(json_upload);
+                    
                 }
 
             }
@@ -94,7 +144,17 @@
 {% block content %}
     <div id='header'>
         <span>{{ name }}</span>
+        
     </div>
 	<div id='calendar'></div>
+    <div id="modal1" class="modal">
+    <div class="modal-content">
+      <h4>Modal Header</h4>
+      <p>A bunch of text</p>
+    </div>
+    <div class="modal-footer">
+      <a href="#!" class="modal-close waves-effect waves-green btn-flat">Agree</a>
+    </div>
+  </div>
 {% endblock content %}
     

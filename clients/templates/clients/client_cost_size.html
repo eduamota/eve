@@ -1,0 +1,147 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Support Cost Calculator{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+
+        body {
+            
+            padding: 0;
+            font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+            font-size: 14px;
+        }
+        .channel-link{
+                
+            font-size: 11px
+        }
+
+    </style>
+    {% endblock head_css_page %}
+
+{% block head_js %}
+<script type="text/javascript">
+    function changeClient(obj){
+        urlString = "http://localhost:8000/client/client/"
+        var selectedClient = obj.value;
+        
+        if (selectedClient.value != ""){
+            window.location = urlString + selectedClient;
+        }
+    }
+</script>
+{% endblock head_js %}
+{% block pagetitle %}Support Cost Form{% endblock pagetitle %}
+{% block content %}
+    <div class="container">   
+        <div class="row">
+            <form action="" method="post">
+                {% csrf_token %}
+                
+                <div id="payee-size">
+                    <div class="row">
+                        <div class="col s4">
+                          <div class="card">
+                            <div class="card-content grey-text">
+                              <span class="card-title">0 - 5,000 Payees</span>
+                              
+                            </div>
+                            <div class="card-action">
+                                <a href="/client/cost/channel/5000/">Select</a>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="col s4">
+                          <div class="card">
+                            <div class="card-content grey-text">
+                              <span class="card-title">5,001 - 10,000 Payees</span>
+                              
+                            </div>
+                            <div class="card-action">
+                                <a href="/client/cost/channel/10000/">Select</a>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="col s4">
+                          <div class="card">
+                            <div class="card-content grey-text">
+                              <span class="card-title">10,001 - 20,000 Payees</span>
+                              
+                            </div>
+                            <div class="card-action">
+                                <a href="/client/cost/channel/20000/">Select</a>
+                            </div>
+                          </div>
+                        </div>       
+                    </div>
+                            
+                    <div class="row">
+                        
+                        <div class="col s4">
+                          <div class="card">
+                            <div class="card-content grey-text">
+                              <span class="card-title">20,001 - 40,000 Payees</span>
+                              
+                            </div>
+                            <div class="card-action">
+                                <a href="/client/cost/channel/40000/">Select</a>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="col s4">
+                          <div class="card">
+                            <div class="card-content grey-text">
+                              <span class="card-title">40,000 - 70,000 Payees</span>
+                              
+                            </div>
+                            <div class="card-action">
+                                <a href="/client/cost/channel/70000/">Select</a>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="col s4">
+                          <div class="card">
+                            <div class="card-content grey-text">
+                              <span class="card-title">70,000+ Payees</span>
+                              
+                            </div>
+                            <div class="card-action">
+                                <a href="/client/cost/channel/100000/">Select</a>
+                            </div>
+                          </div>
+                        </div>
+                              
+                    </div>
+                </div>
+            </form>
+            
+        </div>
+        
+    </div>
+{% endblock content %}
+
+{% block footer_javascript_page %}
+<script>
+$(document).ready(function() {
+    $('select').material_select();
+    $('.datepicker').pickadate({
+    selectMonths: true, // Creates a dropdown to control month
+    selectYears: 2, // Creates a dropdown of 15 years to control year,
+    today: 'Today',
+    clear: 'Clear',
+    close: 'Ok',
+    format: 'mmmm dd, yy',
+    formatSubmit: 'yyyy-mm-dd',
+    closeOnSelect: true // Close upon selecting a date,
+  });
+  });
+</script>
+
+{% endblock footer_javascript_page %}

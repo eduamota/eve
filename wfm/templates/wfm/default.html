@@ -33,34 +33,29 @@
 	   $(document).ready(function() {
 		$('#calendar').fullCalendar({
             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
-            height: 700,
-            contentHeight: 700,
+            contentHeight: 600,
             header: {
 				left: 'prev,next today',
 				center: 'title',
-				right: 'month,agendaWeek,basicDay,agendaDay'
+				right: 'month,listWeek,listDay'
 			},
             views: {
-                agendaDay: {
-                    buttonText: "Agenda",
-                    slotDuration: '00:20:00',
-                    snapDuration: '00:05:00',
-                    displayEventEnd: true,
-                    displayEventTime: true,
-                },
-                basicDay: {
-                    buttonText: "Day",
-                },
-                agendaWeek: {
+                listWeek: {
                     buttonText: "Week",
+                    snapDuration: '00:05:00',
+                },
+                listDay: {
+                    buttonText: "Day",
+                    snapDuration: '00:05:00',
                 },
                 month: {
                     buttonText: "Month",
+                    snapDuration: '00:05:00',
                 },
             },
-            defaultView: 'agendaDay',
+            defaultView: 'listDay',
 			//defaultDate: '2017-09-12',
-			editable: false,
+			editable: true,
 			eventLimit: true, // allow "more" link when too many events
             eventSources: [
 
@@ -99,7 +94,7 @@
     <div id='header'>
         <span>{{ name }}</span>
     </div>
-    <div class="row">
+    <div class="row container">
         <div class="col s12">	   
             <div id='calendar'></div>
         </div>

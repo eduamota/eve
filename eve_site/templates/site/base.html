@@ -37,8 +37,8 @@
         
         {% load static %}
             <script type="text/javascript" src="{% static 'js/jquery-3.2.1.min.js' %}"></script>
-        
             <script type="text/javascript" src="{% static 'js/materialize.min.js' %}"></script>
+            <script type="text/javascript" src="{% static 'js/vue-dev.js' %}"></script>
         {% block head_js %}
         
         {% endblock head_js %}
@@ -119,7 +119,7 @@
         {# The Footer #}
         <div class="footer">
             <div class="container">
-                <p>Copyright 2017</p>
+                <p>Copyright 2018</p>
             </div>
         </div>
     </div>
@@ -127,7 +127,8 @@
     <script>
             $(document).ready(function() {
             // Initialize collapse button
-          $(".button-collapse").sideNav({edge: 'right', closeOnClick: false, });
+                //$('.sidenav').sidenav();
+          $(".button-collapse").sideNav({edge: 'right', closeOnClick: false,});
           // Initialize collapsible (uncomment the line below if you use the dropdown variation)
           //$('.collapsible').collapsible();
                 });

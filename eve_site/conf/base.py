@@ -12,6 +12,7 @@ SECRET_KEY = '1i^nrwl-^3o1+lhdir*a!6@-h9o7p$nq1u+53pe@!&e&hhkhdm'
 # Application definition
 
 INSTALLED_APPS = [
+    'background_task',
     'utils.apps.UtilsConfig',
     'clients.apps.ClientsConfig',
     'quality.apps.QualityConfig',
@@ -110,9 +111,3 @@ STATICFILES_DIRS = [
 
 LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
 FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, "eve_site", "tmp")
-# CELERY STUFF
-CELERY_BROKER_URL = 'amqp://guest:guest@localhost//'
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'

@@ -125,9 +125,10 @@
 			var selectEl = document.getElementById('queueName');
 
 			selectEl.onchange = function(){				
-				var goto = window.location.protocol + "//";		
-				goto = goto + window.location.hostname + ":443";
-				goto = goto + "/phone/queues/"+this.value;	
+				//var goto = window.location.protocol + "//";		
+				//goto = goto + window.location.hostname + ":443";
+				//goto = goto + "/phone/queues/"+this.value;	
+				var goto = "/phone/queues/"+this.value;	
 				window.location =goto;
 			};
 		</script>

@@ -1,0 +1,133 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+            .black {
+                
+                background-color: #111111;
+            }
+             .error {color: #FF0000;}
+             
+             .pinned {width: 70%; padding-left: 80px}
+
+            table {
+                font-family: arial, sans-serif;
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            td, th {
+                border: 1px solid #dddddd;
+                text-align: center;
+                padding: 8px;
+            }
+
+            tr:nth-child(even) {
+                background-color: #dddddd;
+            }
+
+            
+        </style>
+    {% endblock head_css_page %}
+
+    {% block head_js %}
+    {% load static %}
+    <script type="text/javascript" src="{% static 'js/plotly.js' %}"></script>
+    {% endblock head_js %}
+
+{% block content %}
+<div >
+    <div id="myDiv">
+        <table>
+            <caption>Call Summary - H:1100 SLA:86% Abn:2.8%</caption>
+            <tr>
+                <th>
+                    English 
+                </th>
+                <th>
+                    French
+                </th>
+                <th>
+                    Spanish
+                </th>
+                <th>
+                    Mandarin
+                </th>
+                <th>
+                    Korean
+                </th>
+                <th>
+                    Japanese
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    H:700 A:50 T:750
+                </td>
+                <td>
+                    H:200 A:10 T:210
+                </td>
+                <td>
+                    H:300 A:20 T:320
+                </td>
+                <td>
+                    H:300 A:20 T:320
+                </td>
+                <td>
+                    H:300 A:20 T:320
+                </td>
+                <td>
+                    H:300 A:20 T:320
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    W: 5 CB: 5
+                </td>
+                <td>
+                    W: 0 CB: 0
+                </td>
+                <td>
+                    W: 10 CB: 3
+                </td>
+                <td>
+                    W: 5 CB: 0
+                </td>
+                <td>
+                    W: 0 CB: 0
+                </td>
+                <td>
+                    W: 10 CB: 7
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    SLA: 85% Abn: 3.4%
+                </td>
+                <td>
+                    SLA: 95% Abn: 7.4%
+                </td>
+                <td>
+                    SLA: 88% Abn: 2.4%
+                </td>
+                <td>
+                    SLA: 85% Abn: 3.4%
+                </td>
+                <td>
+                    SLA: 95% Abn: 7.4%
+                </td>
+                <td>
+                    SLA: 88% Abn: 2.4%
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+{% endblock content %}
+    

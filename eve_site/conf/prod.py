@@ -4,7 +4,7 @@ Created on Mon Dec 04 08:24:54 2017
 
 @author: emota
 """
-
+from .base import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 

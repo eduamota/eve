@@ -11,10 +11,9 @@ urlpatterns = [
 	url(r'^events/$', views.events),
 	url(r'^user/add$', views.addAgent),
 	url(r'^schedule_job/$', views.schedule_job),
-	url(r'^scheduler/(?P<action>[a-z]+)$', views.scheduler),
-	url(r'^add_job/$', views.add_jobs),
 	url(r'^settz/$', views.set_timezone),
 	url(r'^request/(?P<ev>[a-zA-Z]+)$', views.add_event),
 	url(r'^review/requests$', views.review_requests),
 	url(r'^agent/$', views.agentBoard),
+	url(r'^change/$', views.changeException)
 ]

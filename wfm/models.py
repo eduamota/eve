@@ -62,7 +62,7 @@ class Shift_Sequence(models.Model):
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
 				
     def __str__(self):
-        return self.user
+        return str(self.user)
 
 class Event_Group(models.Model):
     name = models.CharField(max_length=30)

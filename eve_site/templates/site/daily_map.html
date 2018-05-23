@@ -1,0 +1,133 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+            body {
+                background-color: #111111;
+            }
+            .black {
+                
+                background-color: #111111;
+            }
+             .error {color: #FF0000;}
+             
+             .pinned {width: 70%; padding-left: 80px}
+        </style>
+    {% endblock head_css_page %}
+
+    {% block head_js %}
+    {% load static %}
+    <script type="text/javascript" src="{% static 'js/plotly.js' %}"></script>
+    {% endblock head_js %}
+
+{% block content %}
+<div >
+    <div id="myDiv" class="black"></div>
+        <script>
+            
+            var data = [{
+                type: 'scattergeo',
+                mode: 'markers',
+                
+                lon: [-116.576, -123.121],
+                lat: [53.93, 49.2827],
+                marker: {
+                    size: [20, 30],
+                    color: [10, 30],
+                    gradient: {
+                        type: 'radial',
+                        color: '#e8f7ff',
+                    },
+                    cmin: 0,
+                    cmax: 100,
+                    colorscale: [[0, 'rgb(8, 146, 208)'], [1, 'rgb(8, 146, 208)']],
+                    
+                    line: {
+                        color: 'white',
+                        width: 0,
+                    }
+                },
+                
+                name: 'Calls / Chats'
+            }];
+
+            var layout = {
+                autosize: false,
+                
+                width: 1900,
+                height: 900,
+                margin: {
+                    l: 0,
+                    r: 0,
+                    b: 0,
+                    t: 0,
+                    pad: 0
+                  },
+                paper_bgcolor: '#111111',
+                'geo': {
+                    'scope': 'world',
+                    'projection': {
+                        type: 'robinson',
+                       
+                    },
+                    'coastlinecolor': '#eaeaea',
+                    
+                    'showcountries': true,
+                    'framewidth': 0,
+                    'bgcolor': '#111111',
+                    'resolution': 100
+                }
+            };
+
+            Plotly.newPlot('myDiv', data, layout);
+            
+            
+            
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var myArr = JSON.parse(this.responseText);
+                    var update = [{
+                type: 'scattergeo',
+                mode: 'markers',
+                
+                lon:  myArr.lng,
+                lat: myArr.lat,
+                hovertext: myArr.name,
+                marker: {
+                    size: myArr.freq,
+                    color: myArr.color,
+                    
+                    gradient: {
+                        type: 'radial',
+                        color: '#e8f7ff',
+                    },
+                    cmin: 0,
+                    cmax: 100,
+                    colorscale: [[0, 'rgb(8, 146, 208)'], [1, 'rgb(8, 146, 208)']],
+                    
+                    line: {
+                        color: 'white',
+                        width: 0,
+                    }
+                },
+                
+                name: 'Calls / Chats'
+            }];
+                    Plotly.react('myDiv', update, layout);
+                    
+                }
+            };
+            
+            xmlhttp.open("GET", "/get_locations/day", true);
+            xmlhttp.send();
+            
+        </script>
+</div>
+{% endblock content %}
+    

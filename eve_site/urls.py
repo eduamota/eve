@@ -19,6 +19,7 @@ from django.contrib.auth import views as auth_views
 from eve_site import views
 from rest_framework import routers
 from api1_0 import views as apiViews
+from eve_site.admin import admin_site
 
 router = routers.DefaultRouter()
 router.register(r'shift_exception', apiViews.Shift_ExceptionViewSet)
@@ -40,6 +41,11 @@ urlpatterns = [
 	url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 	url(r'^admin/', admin.site.urls),
 	url(r'^dashboard/', views.home_page),
+	url(r'^mng_dashboard/', views.tm_dashboard),
+	url(r'^tv/$', views.globe_dashboard),
+	url(r'^tv/(?P<timep>[\w]+)$', views.globe_dashboard),
+	url(r'^get_locations/$', views.get_locations),
+	url(r'^get_locations/(?P<timep>[\w]+)/$', views.get_locations),
 	url(r'^phone/', include('phone.urls')),
 	url(r'^accounts/login/$', auth_views.LoginView.as_view(), name="login"),
 	url(r'^accounts/logout/$', auth_views.LogoutView.as_view(), {'next_page': '/',}),
@@ -48,5 +54,6 @@ urlpatterns = [
 	url(r'^wfm/', include('wfm.urls')),
 	url(r'^client/', include('clients.urls')),
 	url(r'^agent/', views.agent_dashboard, name="agent_dashboard"),
+	url(r'^myadmin/', include(admin_site.urls)),
 	url(r'^$', views.home_page, name="home_page"),
 ]

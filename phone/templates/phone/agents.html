@@ -158,9 +158,9 @@
 			var selectEl = document.getElementById('agentName');
 
 			selectEl.onchange = function(){				
-				var goto = window.location.protocol + "//";		
-				goto = goto + window.location.hostname + ":443";
-				goto = goto + "/phone/agents/" +this.value;	
+				//var goto = window.location.protocol + "//";		
+				//goto = goto + window.location.hostname + ":443";
+				var goto = "/phone/agents/" +this.value;	
 				window.location =goto;
 			};
 		</script>
