@@ -31,7 +31,7 @@
     <script>
 
 	   $(document).ready(function() {
-        $('.modal').modal();   
+        
 		$('#calendar').fullCalendar({
             height: 700,
             contentHeight: 700,
@@ -51,14 +51,21 @@
                 timelineDay: {
                     buttonText: "Day",
                     snapDuration: '00:05:00',
+                    displayEventTime: true,
+                    displayEventEnd: true,
+                    nowIndicator: true,
                 },
                 timelineWeek: {
                     buttonText: "Week",
                     snapDuration: '00:05:00',
+                    displayEventTime: true,
+                    displayEventEnd: true,
                 },
                 timelineMonth: {
                     buttonText: "Month",
                     snapDuration: '00:05:00',
+                    displayEventTime: true,
+                    displayEventEnd: true,
                 },
             },
             resources: {
@@ -78,7 +85,7 @@
                 else{
                     
                     var theUrl = "/wfm/change/";
-                    var json_upload = JSON.stringify({profile:event.resourceId, event:event.id, start: event.start, end: event.end, title: event.title});
+                    var json_upload = JSON.stringify({profile:event.resourceId, event:event.id, start: event.start, end: event.end, title: event.title, time_delta: delta.asMinutes()});
                     
                     var xmlHttp = new XMLHttpRequest();
                     
@@ -87,6 +94,7 @@
                             var stat = JSON.parse(xmlHttp.responseText);
                             if(stat.Status == 'OK'){
                                 Materialize.toast(stat.data, 4000);
+                                $('#calendar').fullCalendar('refetchEvents');
                             }
                             else{
                                 Materialize.toast(stat.data, 4000);
@@ -110,7 +118,7 @@
                 else{
                     
                     var theUrl = "/wfm/change/";
-                    var json_upload = JSON.stringify({profile:event.resourceId, event:event.id, start: event.start, end: event.end, title: event.title});
+                    var json_upload = JSON.stringify({profile:event.resourceId, event:event.id, start: event.start, end: event.end, title: event.title, time_delta: delta.asMinutes()});
                     
                     var xmlHttp = new XMLHttpRequest();
                     
@@ -133,9 +141,27 @@
                     
                 }
 
-            }
+            },
+            eventMouseover: function(event, jsEvent, view){
+                var msg = "<strong>" + event.title + "</strong><br/>From: " + event.start.format("h:mm A") + "<br/>To: " + event.end.format("h:mm A");
+                var tooltip = '<div class="tooltipevent" style="width:150px;height:60px;background:#fff;position:absolute;z-index:10001;">' + msg + '</div>';
+                var $tooltip = $(tooltip).appendTo('body');
+
+                $(this).mouseover(function(e) {
+                    $(this).css('z-index', 10000);
+                    $tooltip.fadeIn('500');
+                    $tooltip.fadeTo('10', 1.9);
+                }).mousemove(function(e) {
+                    $tooltip.css('top', e.pageY + 10);
+                    $tooltip.css('left', e.pageX + 20);
+                });
+            },
+            eventMouseout: function(calEvent, jsEvent) {
+                $(this).css('z-index', 8);
+                $('.tooltipevent').remove();
+            },
 		});
-		
+		$('.tooltipped').tooltip({delay: 50});  
 	});
 
     </script>
