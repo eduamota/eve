@@ -23,16 +23,7 @@
     {% endblock head_css_page %}
 
 {% block head_js %}
-<script type="text/javascript">
-    function changeClient(obj){
-        urlString = "http://localhost:8000/client/client/"
-        var selectedClient = obj.value;
-        
-        if (selectedClient.value != ""){
-            window.location = urlString + selectedClient;
-        }
-    }
-</script>
+
 {% endblock head_js %}
 {% block pagetitle %}Support Cost Form{% endblock pagetitle %}
 {% block content %}
@@ -54,10 +45,10 @@
                 
                 </div>
                 
-                 {% for channel, languages in languages.items %}
+                 {% for channel, langs in languages.items %}
                 <div id="{{channel}}-language">
                     
-                   {% for language, cost in languages.items %}
+                   {% for language, cost in langs.items %}
                     <div class="row">
                         <h5> {{ channel|capfirst }} {{ language|capfirst }}</h5>
                         <div col="col s4">
@@ -79,11 +70,11 @@
                                         8am - 4:30pm PST
                                     </td>
                                     <td>
-                                        <input type="checkbox" id="{{channel}}-{{language}}-morning-weekday" name="{{channel}}-{{language}}-morning-weekday" value="{{ cost }}" v-model="supportCostMorningWeekday"/>
+                                        <input type="checkbox" id="{{channel}}-{{language}}-morning-weekday" name="{{channel}}-{{language}}-morning-weekday" value="{{ cost }}" v-model="{{channel}}_{{language}}_supportCostMorningWeekday"/>
                                         <label for="{{channel}}-{{language}}-morning-weekday">${{ cost }}</label>
                                     </td>
                                     <td>
-                                        <input type="checkbox" id="{{channel}}-{{language}}-morning-weekend" name="{{channel}}-{{language}}-morning-weekend" value="{{ cost }}" v-model="supportCostMorningWeekend"/>
+                                        <input type="checkbox" id="{{channel}}-{{language}}-morning-weekend" name="{{channel}}-{{language}}-morning-weekend" value="{{ cost }}" v-model="{{channel}}_{{language}}_supportCostMorningWeekend"/>
                                         <label for="{{channel}}-{{language}}-morning-weekend"> ${{ cost }}</label>
                                     </td>
                                   </tr>
@@ -92,11 +83,11 @@
                                         1:30pm - 10pm PST
                                     </td>
                                     <td>
-                                        <input type="checkbox" id="{{channel}}-{{language}}-afternoon-weekday" name="{{channel}}-{{language}}-afternoon-weekday" value="{{ cost }}" v-model="supportCostAfternoonWeekday" />
+                                        <input type="checkbox" id="{{channel}}-{{language}}-afternoon-weekday" name="{{channel}}-{{language}}-afternoon-weekday" value="{{ cost }}" v-model="{{channel}}_{{language}}_supportCostAfternoonWeekday" />
                                         <label for="{{channel}}-{{language}}-afternoon-weekday">${{ cost }}</label>
                                     </td>
                                     <td>
-                                        <input type="checkbox" id="{{channel}}-{{language}}-afternoon-weekend" name="{{channel}}-{{language}}-afternoon-weekend" value="{{ cost }}" v-model="supportCostAfternoonWeekend"/>
+                                        <input type="checkbox" id="{{channel}}-{{language}}-afternoon-weekend" name="{{channel}}-{{language}}-afternoon-weekend" value="{{ cost }}" v-model="{{channel}}_{{language}}_supportCostAfternoonWeekend"/>
                                         <label for="{{channel}}-{{language}}-afternoon-weekend">${{ cost }}</label>
                                     </td>
                                   </tr>
@@ -105,11 +96,11 @@
                                         9:30pm - 8am PST
                                     </td>
                                     <td>
-                                        <input type="checkbox" id="{{channel}}-{{language}}-overnight-weekday" name="{{channel}}-{{language}}-overnight-weekday" value="{{ cost }}" v-model="supportCostOvernightWeekday"/>
+                                        <input type="checkbox" id="{{channel}}-{{language}}-overnight-weekday" name="{{channel}}-{{language}}-overnight-weekday" value="{{ cost }}" v-model="{{channel}}_{{language}}_supportCostOvernightWeekday"/>
                                         <label for="{{channel}}-{{language}}-overnight-weekday">${{ cost }}</label>
                                     </td>
                                     <td>
-                                        <input type="checkbox" id="{{channel}}-{{language}}-overnight-weekend" name="{{channel}}-{{language}}-overnight-weekend" value="{{ cost }}" v-model="supportCostOvernightWeekend"/>
+                                        <input type="checkbox" id="{{channel}}-{{language}}-overnight-weekend" name="{{channel}}-{{language}}-overnight-weekend" value="{{ cost }}" v-model="{{channel}}_{{language}}_supportCostOvernightWeekend"/>
                                         <label for="{{channel}}-{{language}}-overnight-weekend">${{ cost }}</label>
                                     </td>
                                   </tr>
@@ -136,22 +127,30 @@
     var app = new Vue({
         el: '#calc',
         data: {
-            supportCostMorningWeekday: [],
-            supportCostMorningWeekend: [],
-            supportCostAfternoonWeekday: [],
-            supportCostAfternoonWeekend: [],
-            supportCostOvernightWeekday: [],
-            supportCostOvernightWeekend: []
+            {% for channel, langs in languages.items %}
+                {% for language, cost in langs.items %}
+                    {{channel}}_{{language}}_supportCostMorningWeekday: [],
+                    {{channel}}_{{language}}_supportCostMorningWeekend: [],
+                    {{channel}}_{{language}}_supportCostAfternoonWeekday: [],
+                    {{channel}}_{{language}}_supportCostAfternoonWeekend: [],
+                    {{channel}}_{{language}}_supportCostOvernightWeekday: [],
+                    {{channel}}_{{language}}_supportCostOvernightWeekend: [], 
+                {% endfor %}
+            {% endfor %}
         },
         computed: {
             totalCost(){
-                var total = this.supportCostMorningWeekday.reduce((acc, item) => acc + Number(item), 0);
-                total +=  this.supportCostMorningWeekend.reduce((acc, item) => acc + Number(item), 0);
-                total +=  this.supportCostAfternoonWeekday.reduce((acc, item) => acc + Number(item), 0);
-                total +=  this.supportCostAfternoonWeekend.reduce((acc, item) => acc + Number(item), 0);
-                total +=  this.supportCostOvernightWeekday.reduce((acc, item) => acc + Number(item), 0);
-                total +=  this.supportCostOvernightWeekend.reduce((acc, item) => acc + Number(item), 0);
-                
+                var total = 0;
+                {% for channel, langs in languages.items %}
+                    {% for language, cost in langs.items %}
+                        total +=  this.{{channel}}_{{language}}_supportCostMorningWeekday.reduce((acc, item) => acc + Number(item), 0);
+                        total +=  this.{{channel}}_{{language}}_supportCostMorningWeekend.reduce((acc, item) => acc + Number(item), 0);
+                        total +=  this.{{channel}}_{{language}}_supportCostAfternoonWeekday.reduce((acc, item) => acc + Number(item), 0);
+                        total +=  this.{{channel}}_{{language}}_supportCostAfternoonWeekend.reduce((acc, item) => acc + Number(item), 0);
+                        total +=  this.{{channel}}_{{language}}_supportCostOvernightWeekday.reduce((acc, item) => acc + Number(item), 0);
+                        total +=  this.{{channel}}_{{language}}_supportCostOvernightWeekend.reduce((acc, item) => acc + Number(item), 0);
+                    {% endfor %}
+                {% endfor %}
                 return "$" + total + "/month";
                 
             }

@@ -16,16 +16,9 @@
     {% endblock head_css_page %}
 
 {% block head_js %}
-<script type="text/javascript">
-    function changeClient(obj){
-        urlString = "http://localhost:8000/client/client/"
-        var selectedClient = obj.value;
-        
-        if (selectedClient.value != ""){
-            window.location = urlString + selectedClient;
-        }
-    }
-</script>
+    {% load static %}
+        <script type="text/javascript" src="{% static 'js/jspdf.min.js' %}"></script>
+
 {% endblock head_js %}
 {% block pagetitle %}Support Cost Form{% endblock pagetitle %}
 {% block content %}
@@ -35,6 +28,10 @@
             <div class='hide'>
                     <input id="support_cost" type="text" name="support_cost" value={{ cost }} v-model="support_cost">
                 </div>
+            <div class='hide'>
+                    <input id="size" type="text" name="size" value={{ size }}>
+                </div>
+            <div id="cost_breakdown">
             <ul class="collapsible collapsible-accordion" >
                 <li>
                     <div class="collapsible-header"><i class="material-icons">people</i>Support Summary - ${{cost}} /month</div>
@@ -62,6 +59,19 @@
                         </div>
                     </div>
                 </li>
+                <li>
+                    <div class="collapsible-header"><i class="material-icons">bubble_chart</i>Telephone Numbers - {% verbatim %} {{phone_additionalCost}} {% endverbatim %}</div>
+                    <div class="collapsible-body">
+                        <div>
+                            {% for country, cost in phone_additional_service.items %}
+                            <p>
+                                <input type="checkbox" id="{{country}}" value="{{cost}}" v-model="{{country}}_phone_additional_cost"/>
+                                <label for="{{country}}">{{country}} - ${{cost}}</label>  
+                            </p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </li>
             </ul>
 
             <div class="row" id="total">
@@ -69,11 +79,12 @@
                     <h5>Total {% verbatim %} {{totalCost}} {% endverbatim %}</h5>
                 </div>
             </div>
+            </div>
             <div class="row">
                 <div class="col s2">
-                     <button class="btn waves-effect waves-light" v-on:click="savePDF">Save PDF
+                     <a class="btn waves-effect waves-light" v-on:click="savePDF">Save PDF
                         <i class="material-icons right">send</i>
-                      </button>
+                      </a>
                 </div>
             </div>
         </form>
@@ -92,7 +103,11 @@
         el: '#services',
         data: {
             additional_cost: [],
+            phone_additional_cost: [],
             support_cost: {{cost}},
+            {% for country, cost in phone_additional_service.items %}
+                {{country}}_phone_additional_cost: [],
+            {% endfor %}
         },
         computed: {
             additionalCost(){
@@ -100,23 +115,44 @@
                 return "$" + total + " /month";
                 
             },
+            phone_additionalCost(){
+                var total = 0
+                {% for country, cost in phone_additional_service.items %}
+                    total = total + this.{{country}}_phone_additional_cost.reduce((acc, item) => acc + Number(item), 0);
+                 {% endfor %}
+                return "$" + total + " /month";
+                
+            },
             totalCost(){
                 var total = this.additional_cost.reduce((acc, item) => acc + Number(item), 0) + this.support_cost;
+                {% for country, cost in phone_additional_service.items %}
+                    total = total + this.{{country}}_phone_additional_cost.reduce((acc, item) => acc + Number(item), 0);
+                {% endfor %}
                 return "$" + total + " /month";
             }
             
         },
         methods: {
             savePDF: function() {
-            var divContents = $("#services").html();
-            var printWindow = window.open('', '', 'height=400,width=800');
-            printWindow.document.write('<html><head><title>Support Cost</title>');
-            printWindow.document.write('</head><body >');
-            printWindow.document.write(divContents);
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            printWindow.print();
-        },
+                var d = new Date();
+                var doc = new jsPDF();
+                var d_formated = d.getFullYear() + "-" + d.getMonth() + "-" +d.getDay() + "-" + d.getHours() + "-" + d.getMinutes() + "-" + d.getSeconds()
+                var elementHandler = {
+                  '#ignorePDF': function (element, renderer) {
+                    return true;
+                  }
+                };
+                var source = window.document.getElementById("services");
+                doc.fromHTML(
+                    source,
+                    15,
+                    15,
+                    {
+                      'width': 200,'elementHandlers': elementHandler
+                    });
+
+                doc.save(d_formated + '.pdf');
+            },
         }
         
     });
