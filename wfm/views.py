@@ -656,3 +656,50 @@ def changeException(request):
 			ev.save()
 			return JsonResponse({'Status':"OK", 'data':t + " Sucessfully Changed For " + agent.first_name}, safe=False)
 	return JsonResponse({'Status':"Failed",}, safe=False)
+
+@csrf_exempt
+def addEvent(request):
+	if request.body:
+		data = json.loads(request.body)
+
+		p = data['profile']
+		e = data['event']
+		t = data['title']
+		delta = data['time_delta']
+		start = datetime.strptime(data['start'], "%Y-%m-%dT%H:%M:%S")
+		end = datetime.strptime(data['end'], "%Y-%m-%dT%H:%M:%S")
+
+		tz = pytz.timezone(request.user.profile.location.iso_name)
+
+		start = tz.localize(start)
+		end = tz.localize(end)
+		agent = User.objects.get(pk = p)
+
+		#print(delta)
+		if t == 'Shift':
+			ev = Shift_Sequence.objects.get(pk = e)
+			ev.start_date_time = start
+			ev.end_date_time = end
+			delta_days = end - start
+			ev.end_diff = delta_days.days
+			ev.save()
+
+			exceptions = Shift_Exception.objects.filter(shift_sequence = ev)
+			for ex in exceptions:
+				ex.start_date_time = ex.start_date_time + timedelta(minutes = delta)
+				ex.end_date_time = ex.end_date_time + timedelta(minutes = delta)
+				ex.start_diff = 0
+				delta_d = ex.end_date_time - ex.start_date_time
+				ex.end_diff = delta_d.days
+				ex.save()
+
+			return JsonResponse({'Status':"OK", 'data':"Shift Sucessfully Changed For " + agent.first_name}, safe=False)
+		else:
+			ev = Shift_Exception.objects.get(pk = e)
+			ev.start_date_time = start
+			ev.end_date_time = end
+			delta_days = end - start
+			ev.end_diff = delta_days.days
+			ev.save()
+			return JsonResponse({'Status':"OK", 'data':t + " Sucessfully Changed For " + agent.first_name}, safe=False)
+	return JsonResponse({'Status':"Failed",}, safe=False)
