@@ -15,5 +15,8 @@ urlpatterns = [
 	url(r'^form$', views.formAction),
 	url(r'^form/new', views.formAction),
 	url(r'^form/(?P<form>\d+$)', views.formAction),
-	
+	url(r'^form/v2/search', views.formSearch),
+	url(r'^form/v2/$', views.formAction),
+	url(r'^form/v2/new', views.formAction),
+	url(r'^form/v2/(?P<form>\d+$)', views.formAction)
 ]

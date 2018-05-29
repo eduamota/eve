@@ -170,6 +170,29 @@
                  
                 console.log('Resource ID: ' + resourceObj.id);
                  console.log(resourceObj);
+                 
+                 
+                var theUrl = "/wfm/change/";
+                var json_upload = JSON.stringify({profile: resourceObj.id, event:event.id, start: event.start, end: event.end, title: event.title, time_delta: delta.asMinutes()});
+
+                var xmlHttp = new XMLHttpRequest();
+
+                xmlHttp.onreadystatechange = function() {
+                    if (xmlHttp.readyState == 4 && xmlHttp.status == 200){
+                        var stat = JSON.parse(xmlHttp.responseText);
+                        if(stat.Status == 'OK'){
+                            Materialize.toast(stat.data, 4000);
+                        }
+                        else{
+                            Materialize.toast(stat.data, 4000);
+                        }
+                    }
+
+
+                }
+                xmlHttp.open("POST", theUrl, true); // true for asynchronous
+                xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencodeds");
+                xmlHttp.send(json_upload);
 
               }
 		});
