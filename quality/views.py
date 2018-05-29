@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 import re
 from utils.models import Profile
 from clients.models import Language
+from quality.models import Quality_Form, Quality_Section, Quality_Question, Quality_Evaluation
 
 # Create your views here.
 #@permission_required('polls.can_vote')
@@ -153,6 +154,7 @@ def formSearch(request):
 	errors = {}
 	messages = []
 	supervisors = {}
+	sections = []
 
 	#Run queries to retrieve the list of agents & language
 	with connection.cursor() as cursor:
@@ -175,6 +177,8 @@ def formSearch(request):
 
 		for language in languages_raw:
 			languages[language[0]] = language[1]
+
+
 
 	if request.POST:
 		for key, value in request.POST.items():
@@ -213,7 +217,7 @@ def formSearch(request):
 
 
 @login_required()
-def formAction(request, form = -1):
+def formActionv2(request, form = -1):
 
 	#Setup variables to keep track of variables for options in page
 	agents = {}
@@ -231,7 +235,7 @@ def formAction(request, form = -1):
 	sup_name = request.user.first_name + " " + request.user.last_name
 	supervisor = {sup_id: sup_name,}
 
-	agents_obj = Profile.objects.exclude(label__contains='supervisor')
+	agents_obj = Profile.objects.exclude(label__contains='supervisor').exclude(label__contains="team lead")
 
 	for agent in agents_obj:
 		agents[agent.user.id] = agent.user.first_name + " " + agent.user.last_name
