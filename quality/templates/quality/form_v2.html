@@ -28,7 +28,7 @@
         {% endfor %}
     {% endif %}
 
-    <div class="container">
+    <div class="container" id="form-quality">
         
         <form method="post" action="">
             {% csrf_token %}
@@ -114,454 +114,35 @@
 
             </div>
                 
-            
-            <div id="section1">
+            {% for section in form %}
+            <div id="{{ section.name }}">
                 <div class="row">
                     <div class="col s1">
-                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close1"><i class="material-icons">add</i></a>
+                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close{{ section.id }}"><i class="material-icons">add</i></a>
                     </div>
-                    <h4 class="col s8">Open the call - 10% of Total</h4>
-                    <h4 class="col s3" id="total1">0 out of 10%</h4>
-                    <h4 class="col s3 hide" id="tot1">0</h4>
-                    <div id="section1Questions" style="display: none;">
-                    
+                    <h4 class="col s8">{{ section.name }} - {{ section.weight }}% of Total</h4>
+                    <h4 class="col s3" id="total{{ section.id }}">0 out of {{ section.weight }}%</h4>
+                    <h4 class="col s3 hide" id="toth{{ section.id }}">0</h4>
+                    <div id="sectionQuestions{{ section.id }}" style="display: none;">
+                        
+                        {% for q in section.questions %}
                         <div class="row">
-                            <h5 id="11L" name="11L" class="col s6 offset-s1">1.1 Used correct greeting</h5>
-                            <select id="11" name="11" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
+                            <h5 id="{{ q.id }}L" name="{{ q.id }}L" class="col s6 offset-s1">{{ q.question }}</h5>
+                            <select id="{{ q.id }}" name="{{ q.id }}" class="col s2"  v-model="question{{q.id}}">
+                                <option value="0" disabled selected>Select a score</option>
+                                {% for answer in q.answers %}
+                                <option value="{{ answer.weight }}">{{ answer.name }}</option>
+                                {% endfor %}
                             </select>
                             <label>Score</label>
+                            
                         </div>
-
-                        <div class="row">
-                            <h5 id="12L" name="12L" class="col s6 offset-s1">1.2 Verified customer information</h5>
-                            <select id="12" name="12" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="13L" name="13L" class="col s6 offset-s1">1.3 Secutiry protocol (if applicable)</h5>
-                            <select id="13" name="13" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="14L" name="14L" class="col s6 offset-s1">1.4 Demonstrated willingness and ability to help</h5>
-                            <select id="14" name="14" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="input-field col s11 offset-s1">
-                            <textarea id="Section1Comments" name="Section1Comments" class="materialize-textarea"></textarea>
-                            <label for="Section1Comments">Comments</label>
-                        </div>  
+                        {% endfor %} 
                         
                     </div>
                 </div>
             </div>
-            
-            <div id="section2">
-                <div class="row">
-                    <div class="col s1">
-                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close2"><i class="material-icons">add</i></a>
-                    </div>
-                    <h4 class="col s8">Explore the need - 15% of Total</h4>
-                    <h4 class="col s3" id="total2">0 out of 15%</h4>
-                    <h4 class="col s3 hide" id="tot2">0</h4>
-                    <div id="section2Questions" style="display: none;">
-                        <div class="row">
-                            <h5 id="21L" name="21L" class="col s6 offset-s1">2.1 Confirmed root of call</h5>
-                            <select id="21" name="21" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="22L" name="22L" class="col s6 offset-s1">2.2 Used effective questioning to accurately identify issue to be solved</h5>
-                            <select id="22" name="22" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="23L" name="23L" class="col s6 offset-s1">2.3 Clarified scope of support available when appropriate</h5>
-                            <select id="23" name="23" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="input-field col s11 offset-s1">
-                            <textarea id="Section2Comments" name="Section2Comments" class="materialize-textarea"></textarea>
-                            <label for="Section2Comments">Comments</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="section3">
-                <div class="row">
-                    <div class="col s1">
-                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close3"><i class="material-icons">add</i></a>
-                    </div>
-                    <h4 class="col s8">Offer solution - 20% of Total</h4>
-                    <h4 class="col s3" id="total3">0 out of 20%</h4>
-                    <h4 class="col s3 hide" id="tot3">0</h4>
-                    <div id="section3Questions" style="display: none;">
-                    
-                        <div class="row">
-                            <h5 id="31L" name="31L" class="col s6 offset-s1">3.1 Summarized options and provided customer with alternatives</h5>
-                            <select id="31" name="31" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="32L" name="32L" class="col s6 offset-s1">3.2 Determined action plan and informed accordingly</h5>
-                            <select id="32" name="32" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="33L" name="33L" class="col s6 offset-s1">3.3 Set accurate expectations for solution implemented</h5>
-                            <select id="33" name="33" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="34L" name="34L" class="col s6 offset-s1">3.4 Confirmed with customer that issue has been addressed</h5>
-                            <select id="34" name="34" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="input-field col s11 offset-s1">
-                            <textarea id="Section3Comments" name="Section3Comments" class="materialize-textarea"></textarea>
-                            <label for="Section3Comments">Comments</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="section4">
-                <div class="row">
-                    <div class="col s1">
-                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close4"><i class="material-icons">add</i></a>
-                    </div>
-                    <h4 class="col s8">Communication - 20% of Total</h4>
-                    <h4 class="col s3" id="total4">0 out of 20%</h4>
-                    <h4 class="col s3 hide" id="tot4">0</h4>
-                    <div id="section4Questions" style="display: none;">
-                        <div class="row">
-                            <h5 id="41L" name="41L" class="col s6 offset-s1">4.1 Allowed the customer to speak withouth interruption</h5>
-                            <select id="41" name="41" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="42L" name="42L" class="col s6 offset-s1">4.2 Avoided having the customer repeat themselves unnecessarily</h5>
-                            <select id="42" name="42" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="43L" name="43L" class="col s6 offset-s1">4.3 Showed confidence by speaking with certainty and energy.</h5>
-                            <select id="43" name="43" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="44L" name="44L" class="col s6 offset-s1">4.4 Used positive phrases, focusing on what we can do for the customer</h5>
-                            <select id="44" name="44" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="45L" name="45L" class="col s6 offset-s1">4.5 Acted on opportunities to express empathy to the customer</h5>
-                            <select id="45" name="45" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="46L" name="46L" class="col s6 offset-s1">4.6 Adjusted communication style to be consistent with the customer's comprehension and comfort level</h5>
-                            <select id="46" name="46" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="47L" name="47L" class="col s6 offset-s1">4.7 Used customer's name appropriately during the call</h5>
-                            <select id="47" name="47" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="48L" name="48L" class="col s6 offset-s1">4.8 Took ownership of the issue</h5>
-                            <select id="48" name="48" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="49L" name="49L" class="col s6 offset-s1">4.9 Followed hold procedures</h5>
-                            <select id="49" name="49" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="410L" name="410L" class="col s6 offset-s1">4.10 Followed escalation procedures</h5>
-                            <select id="410" name="410" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="input-field col s11 offset-s1">
-                            <textarea id="Section4Comments" name="Section4Comments" class="materialize-textarea"></textarea>
-                            <label for="Section4Comments">Comments</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="section5">
-                <div class="row">
-                    <div class="col s1">
-                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close5"><i class="material-icons">add</i></a>
-                    </div>
-                    <h4 class="col s8">Accurracy and Completeness - 15% of Total</h4>
-                    <h4 class="col s3" id="total5">0 out of 15%</h4>
-                    <h4 class="col s3 hide" id="tot5">0</h4>
-                    <div id="section5Questions" style="display: none;">
-
-                        <div class="row">
-                            <h5 id="51L" name="51L" class="col s6 offset-s1">5.1 Gave accurate and complete information</h5>
-                            <select id="51" name="51" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="row">
-                            <h5 id="52L" name="52L" class="col s6 offset-s1">5.2 Accurately and completely documented the call in OTRS</h5>
-                            <select id="52" name="52" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="input-field col s11 offset-s1">
-                            <textarea id="Section5Comments" name="Section5Comments" class="materialize-textarea"></textarea>
-                            <label for="Section5Comments">Comments</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="section6">
-                <div class="row">
-                    <div class="col s1">
-                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close6"><i class="material-icons">add</i></a>
-                    </div>
-                    <h4 class="col s8">Close the call - 10% of Total</h4>
-                    <h4 class="col s3" id="total6">0 out of 10%</h4>
-                    <h4 class="col s3 hide" id="tot6">0</h4>
-                    <div id="section6Questions" style="display: none;">
-                        <div class="row">
-                            <h5 id="61L" name="61L" class="col s6 offset-s1">6.1 Used standard closing</h5>
-                            <select id="61" name="61" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="input-field col s11 offset-s1">
-                            <textarea id="Section6Comments" name="Section6Comments" class="materialize-textarea"></textarea>
-                            <label for="Section6Comments">Comments</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="section7">
-                <div class="row">
-                    <div class="col s1">
-                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close7"><i class="material-icons" id="i7">add</i></a>
-                    </div>
-                    <h4 class="col s8">Tools and Resources - 10% of Total</h4>
-                    <h4 class="col s3" id="total7">0 out of 10%</h4>
-                    <h4 class="col s3 hide" id="tot7">0</h4>
-                    <div id="section7Questions" style="display: none;">
-                        <div class="row">
-                            <h5 id="71L" name="71L" class="col s6 offset-s1">7.1 Followed all departmental policies and procedures</h5>
-                            <select id="71" name="71" class="col s2">
-                                <option value="" disabled selected>Select a score</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="NA">NA</option>
-                            </select>
-                            <label>Score</label>
-                        </div>
-
-                        <div class="input-field col s11 offset-s1">
-                            <textarea id="Section7Comments" name="Section7Comments" class="materialize-textarea"></textarea>
-                            <label for="Section7Comments">Comments</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {% endfor %}
             
             <div class="row">
                 <div class="input-field col s12">
@@ -619,6 +200,24 @@
     </div>
     
     <script>
+        
+        var app = new Vue({
+            delimiters: ['[[', ']]'],
+            el: '#form-quality',
+            data: {
+                {% for section in form %} {% for question in section.questions %} question{{ question.id}}: 0, {% endfor %}{% endfor %}
+            },
+            computed: {
+                // a computed getter
+                {% for section in form %} section{{ section.id }}() { qTotal = {% for question in section.questions %} parseFloat(this.question{{ question.id}}) + {% endfor %} 0; return qTotal;
+                }, {% endfor %} 
+              },
+            ready: function() {
+              $("select").material_select();
+            }
+            
+        });
+        
         $(document).ready(function() {
             
             $('.blockPinned').pushpin({
@@ -626,7 +225,7 @@
               offset: 70,
             });
             
-            $('select').material_select();    
+            $("select").material_select(); 
             
             $('#dateCall').pickadate({
                 selectMonths: true, // Creates a dropdown to control month
@@ -641,172 +240,12 @@
             
             $('.modal').modal();
             
-            $("#close1").click(function(){
-                $("#section1Questions").toggle();
-            });
-            $("#close2").click(function(){
-                $("#section2Questions").toggle();
-            });
-            $("#close3").click(function(){
-                $("#section3Questions").toggle();
-            });
-            $("#close3").click(function(){
-                $("#section3Questions").toggle();
-            });
-            $("#close3").click(function(){
-                $("#section3Questions").toggle();
-            });
-            $("#close4").click(function(){
-                $("#section4Questions").toggle();
-            });
-            $("#close5").click(function(){
-                $("#section5Questions").toggle();
-            });
-            $("#close6").click(function(){
-                $("#section6Questions").toggle();
-            });
-            $("#close7").click(function(){
-                $("#section7Questions").toggle();
-            });
+            {% for section in form %}
             
-            $("#11").change(function(){
-                evalSection(1, 10, 4);
+            $("#close{{ section.id }}").click(function(){
+                $("#sectionQuestions{{ section.id }}").toggle();
             });
-            
-            $("#12").change(function(){
-                evalSection(1, 10, 4);
-            });
-            
-            $("#13").change(function(){
-                evalSection(1, 10, 4);
-            });
-            
-            $("#14").change(function(){
-                evalSection(1, 10, 4);
-            });
-            
-            
-            $("#21").change(function(){
-                evalSection(2, 15, 3);
-            });
-            
-            $("#22").change(function(){
-                evalSection(2, 15, 3);
-            });
-            
-            $("#23").change(function(){
-                evalSection(2, 15, 3);
-            });
-            
-            
-            $("#31").change(function(){
-                evalSection(3, 20, 4);
-            });
-            
-            $("#32").change(function(){
-                evalSection(3, 20, 4);
-            });
-            
-            $("#33").change(function(){
-                evalSection(3, 20, 4);
-            });
-            
-            $("#34").change(function(){
-                evalSection(3, 20, 4);
-            });
-            
-            
-            $("#41").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#42").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#43").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#44").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#45").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#46").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#47").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#48").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#49").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#410").change(function(){
-                evalSection(4, 20, 10);
-            });
-            
-            $("#51").change(function(){
-                evalSection(5, 15, 2);
-            });
-            
-            $("#52").change(function(){
-                evalSection(5, 15, 2);
-            });
-            
-            $("#61").change(function(){
-                evalSection(6, 10, 1);
-            });
-            
-            $("#71").change(function(){
-                evalSection(7, 10, 1);
-            });
-            
-        
-        
-        function evalSection(fNum, perc, questions){
-            var numFields = 0;
-            var total = 0;
-            
-            for (i = 1; i < questions+1; i++){
-                var field = $("#"+fNum+i).val();
-                if(field != "NA" && field != null){
-                    numFields += 1;
-                    total += parseInt(field);
-                    
-                    var eval = Math.round(total / (numFields*4) * 100 * perc)/100;
-                    $("#total"+fNum).text(eval + "% out of " + perc + "%");
-                    $("#tot"+fNum).text(eval);
-                }
-                else{
-                    if (numFields == 0){
-                        $("#total"+fNum).text("10% out of " + perc + "%");
-                        $("#tot"+fNum).text("10");
-                    }
-                }
-            }
-            evalTotal();
-        }
-        
-        function evalTotal(){
-            var total = 0;
-            for (i = 1; i < 8; i++){
-                total += parseFloat($("#tot"+i).text());
-            }
-            total = Math.round(total*100)/100;
-            $("#OverallTotal").text(total + "%");
-            $("#TotalScore").val(total);
-        }
+            {% endfor %}
             
         {% if fields %}
             {% for field, value in fields.items %}
@@ -820,7 +259,43 @@
         
         {% endif %}
         
-        $('#dateCall').pickadate({ dateFormat: 'yyyy-mm-dd',  formatSubmit: 'yyyy-mm-dd',});
+            $('#dateCall').pickadate({ dateFormat: 'yyyy-mm-dd',  formatSubmit: 'yyyy-mm-dd',});
+            
+            {% for section in form %} 
+                {% for question in section.questions %} 
+                $("#{{question.id}}").change(function(){
+                    evalSection({{section.id}}, {{section.weight}}, {{section.questions|length}});
+                });
+                {% endfor %}
+            {% endfor %}
+            
+            function evalSection(fNum, perc, questions){
+            var numFields = 0;
+            var total = 0;
+            selectObjects = $('#sectionQuestions' + fNum + ' select');
+                
+            selectObjects.each(function(index){
+                value = $(this).val()
+                if(value != "NA" && value != null){
+                    total += parseFloat(value);
+                }
+            });
+            
+            $("#total"+fNum).text(total + "% out of " + perc + "%");
+            $("#toth"+fNum).text(total);
+            
+            evalTotal();
+        }
+        
+        function evalTotal(){
+            var total = 0;
+            $('[id^="toth"]').each(function(index){
+                total += parseFloat($(this).text());
+            });
+
+            $("#OverallTotal").text(total + "%");
+            $("#TotalScore").val(total);
+        }
             
             });
     </script>

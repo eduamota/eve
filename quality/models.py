@@ -32,9 +32,20 @@ class Quality_Question(models.Model):
     def __str__(self):
         return self.question
 
+class Quality_Response(models.Model):
+    answer = models.CharField(max_length=100)
+    weight = models.DecimalField(max_digits=5, decimal_places=2)
+    question = models.ManyToManyField(Quality_Question)
+
+    def __str__(self):
+        return self.answer + " " + str(self.weight)
+
 class Quality_Form_Evaluation(models.Model):
     field = models.CharField(max_length=150)
     value = models.CharField(max_length=150)
+
+    def __str__(str):
+        return self.field
 
 class Quality_Evaluation(models.Model):
     field = models.CharField(max_length=150)
@@ -42,4 +53,4 @@ class Quality_Evaluation(models.Model):
     question = models.ForeignKey(Quality_Question, on_delete=models.CASCADE)
 
     def __str__(self):
-        return answer
+        return self.answer

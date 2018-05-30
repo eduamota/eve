@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 import re
 from utils.models import Profile
 from clients.models import Language
-from quality.models import Quality_Form, Quality_Section, Quality_Question, Quality_Evaluation
+from quality.models import Quality_Form, Quality_Section, Quality_Question, Quality_Evaluation, Quality_Response
 
 # Create your views here.
 #@permission_required('polls.can_vote')
@@ -246,6 +246,39 @@ def formActionv2(request, form = -1):
 	for language in languages_obj:
 		languages[language.id] = language.name
 
+	q_form = Quality_Form.objects.filter(valid = True)
+	q_sections = Quality_Section.objects.filter(form = q_form).order_by('order')
+
+	form_render = []
+
+	for q_section in q_sections:
+		section = {}
+		section['name'] = q_section.name
+		section['weight'] = q_section.weight
+		section['id'] = q_section.id
+
+		questions = []
+		q_questions = Quality_Question.objects.filter(section = q_section).order_by('order')
+
+		for q_question in q_questions:
+			question = {}
+			question['question'] = q_question.question
+			question['weight'] = q_question.weight
+			question['id'] = q_question.id
+
+			q_answers = Quality_Response.objects.filter(question = q_question).order_by('weight')
+			answers = []
+			for q_answer in q_answers:
+				answer = {}
+				answer['name'] = q_answer.answer
+				answer['weight'] = q_answer.weight
+				answers.append(answer)
+			question['answers'] = answers
+
+			questions.append(question)
+		section['questions'] = questions
+		form_render.append(section)
+
 	c = connection.cursor()
 
 	#Action the form when submitted, and evaluate the form.
@@ -336,4 +369,4 @@ def formActionv2(request, form = -1):
 				fields[row[2]] = row[3]
 
 	c.close()
-	return render(request, 'quality/form_v2.html', {'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
+	return render(request, 'quality/form_v2.html', {'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns, 'form':form_render})
