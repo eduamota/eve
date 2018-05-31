@@ -32,13 +32,13 @@
         
         <form method="post" action="">
             {% csrf_token %}
-            <div class="blockPinned">
+            <div class="block">
   
             <div class="grey lighten-2">
             <div class="row">
                 
                 <div class="input-field col s3">
-                    <select id="evalName" name="evalName">
+                    <select id="selectEvalName" name="selectEvalName">
                         {% for id, name in supervisor.items %}
                             <option value="{{id}}" selected>{{name}}</option>
                         {% endfor %}
@@ -47,7 +47,7 @@
                 </div>
                 
                 <div class="input-field col s3">
-                    <select id="agentName" name="agentName">
+                    <select id="selectAgentName" name="selectAgentName">
                         <option value="" disabled selected>Choose an agent</option>
                         {% for key, agent in agents.items %}
                             <option value="{{key}}">{{agent}}</option>
@@ -57,7 +57,7 @@
                 </div>
                 
                 <div class="input-field col s3">
-                    <select id="language" name="language">
+                    <select id="selectLanguage" name="selectlanguage">
                         <option value="" disabled selected>Choose a language</option>
                         {% for key, language in languages.items %}
                             <option value="{{key}}">{{language}}</option>
@@ -67,36 +67,62 @@
                 </div>
                 
                 <div class="input-field col s3">
-                    <input id="walletNumber" name="walletNumber" type="text" class="validate">
-                    <label for="walletNumber">Wallet / ID Number</label>
+                    <input id="inputWalletNumber" name="inputWalletNumber" type="text" class="validate">
+                    <label for="inputWalletNumber">Account Number</label>
                 </div>
             </div>
             
             <div class="row">
                 <div class="input-field col s3">
-                    <input id="dateCall" name="dateCall" type="text" class="datepicker">
-                    <label for="dateCall">Date of Call</label>
+                    <input id="calendarDateCall" name="CalendarDateCall" type="text" class="datepicker">
+                    <label for="calendarDateCall">Date of Call</label>
                 </div>
                 <div class="input-field col s3">
-                    <input id="typeCall" name="typeCall" type="text" class="validate">
-                    <label for="typeCall">Program Name</label>
-                </div>
-                
-                <div class="input-field col s3">
-                    <input id="recordingFile" name="recordingFile" type="text" class="validate">
-                    <label for="recordingFile">Call ID</label>
+                    <input id="inputProgramName" name="inputProgramName" type="text" class="validate">
+                    <label for="inputProgramName">Program Name</label>
                 </div>
                 
                 <div class="input-field col s3">
-                    <select id="evalType" name="evalType">
-                        <option value="" disabled selected>Evaluation Type</option>
+                    <input id="inputRecordingFile" name="inputRecordingFile" type="text" class="validate">
+                    <label for="inputRecordingFile">Recording File Name</label>
+                </div>
+                
+                <div class="input-field col s3">
+                    <select id="selectEvalType" name="selectEvalType">
+                        <option value="" disabled selected>Choose a Bank</option>
                         <option value="Metabank">Metabank</option>
+                        <option value="Metabank">All Trans</option>
+                        <option value="Metabank">Bancorp</option>
+                        <option value="Metabank">Valitor</option>
                         <option value="Internal">HW Internal</option>
                     </select>
-                    <label>Evaluation Type</label>
+                    <label>Related to Bank</label>
                 </div>
             
             </div>
+                
+                <div class="row">
+                <div class="input-field col s3">
+                    <input id="calendarDateEval" name="calendarDateEval" type="text" class="datepicker">
+                    <label for="calendarDateEval">Date of Evaluation</label>
+                </div>
+                <div class="input-field col s3">
+                    <input id="inputLengthCall" name="inputLengthCall" type="text" class="validate">
+                    <label for="inputLengthCall">Length of Call [min:sec]</label>
+                </div>
+                
+                <div class="input-field col s3">
+                    <input id="inputPrimaryReason" name="inputPrimaryReason" type="text" class="validate">
+                    <label for="inputPrimaryReason">Primary Reason for Contact</label>
+                </div>
+                
+                <div class="input-field col s3">
+                    <input id="inputSecondaryReason" name="inputSecondaryReason" type="text" class="validate">
+                    <label for="inputSecondaryReason">Secondary Reason for Contact</label>
+                </div>
+            
+            </div>
+                
             </div>
 
             </div>
@@ -109,47 +135,68 @@
                 <div class="input-field col s3 hide">
                     <input id="form" name="form" type="text" class="validate">
                 </div>
-                <a class="waves-effect waves-light btn col offset-s2 red" onclick="$('.tap-target').tapTarget('open')">Evaluation legend</a>
+                <a class="waves-effect waves-light btn col offset-s2 red modal-trigger" href="#evalModal">Evaluation legend</a>
                 <a class="waves-effect waves-light btn col offset-s1 green" href="/quality/form/search">Search Evaluations</a>
 
             </div>
                 
             {% for section in form %}
-            <div id="{{ section.name }}">
-                <div class="row">
-                    <div class="col s1">
-                        <a class="btn-floating btn-large waves-effect waves-light blue" id="close{{ section.id }}"><i class="material-icons">add</i></a>
-                    </div>
-                    <h4 class="col s8">{{ section.name }} - {{ section.weight }}% of Total</h4>
-                    <h4 class="col s3" id="total{{ section.id }}">0 out of {{ section.weight }}%</h4>
-                    <h4 class="col s3 hide" id="toth{{ section.id }}">0</h4>
-                    <div id="sectionQuestions{{ section.id }}" style="display: none;">
-                        
-                        {% for q in section.questions %}
+                {% if section.weight == 0 %}
+                    <div id="{{ section.name }}">
                         <div class="row">
-                            <h5 id="{{ q.id }}L" name="{{ q.id }}L" class="col s6 offset-s1">{{ q.question }}</h5>
-                            <select id="{{ q.id }}" name="{{ q.id }}" class="col s2"  v-model="question{{q.id}}">
-                                <option value="0" disabled selected>Select a score</option>
-                                {% for answer in q.answers %}
-                                <option value="{{ answer.weight }}">{{ answer.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <label>Score</label>
+                            <div class="col s1">
+                                <a class="btn-floating btn-large waves-effect waves-light blue" id="close{{ section.id }}"><i class="material-icons">add</i></a>    
+                            </div>
+                            <h4 class="col s8">{{ section.name }}</h4>
+                            <h4 class="col s3 hide" id="total{{ section.id }}">0 out of {{ section.weight }}%</h4>
+                            <h4 class="col s3 hide" id="toth{{ section.id }}">0</h4>
+                            <div id="sectionQuestions{{ section.id }}" style="display: none;">
                             
+                                <div class="row">
+                            {% for q in section.questions %}
+                                
+                                    <div class="input-field col s4">
+                                      <textarea id="{{ q.id }}" name="{{ q.id }}" class="materialize-textarea"></textarea>
+                                      <label for="{{ q.id }}">{{ q.question }}</label>
+                                    </div>
+                                
+                            {% endfor %}
+                                    </div>
+                            </div>
                         </div>
-                        {% endfor %} 
-                        
                     </div>
-                </div>
-            </div>
-            {% endfor %}
             
-            <div class="row">
-                <div class="input-field col s12">
-                    <textarea id="OverallComments" name="OverallComments" class="materialize-textarea"></textarea>
-                    <label for="OverallComments">Overall Comments</label>
-                </div>
-            </div>
+                {% else %}
+            
+                    <div id="{{ section.name }}">
+                        <div class="row">
+                            <div class="col s1">
+                                <a class="btn-floating btn-large waves-effect waves-light blue" id="close{{ section.id }}"><i class="material-icons">add</i></a>
+                            </div>
+                            <h4 class="col s8">{{ section.name }} - {{ section.weight }}% of Total</h4>
+                            <h4 class="col s3" id="total{{ section.id }}">0 out of {{ section.weight }}%</h4>
+                            <h4 class="col s3 hide" id="toth{{ section.id }}">0</h4>
+                            <div id="sectionQuestions{{ section.id }}" style="display: none;">
+
+                                {% for q in section.questions %}
+                                <div class="row">
+                                    <h5 id="{{ q.id }}L" name="{{ q.id }}L" class="col s6 offset-s1">{{ q.question }}</h5>
+                                    <select id="{{ q.id }}" name="{{ q.id }}" class="col s2"  v-model="question{{q.id}}">
+                                        <option value="0" disabled selected>Select a score</option>
+                                        {% for answer in q.answers %}
+                                        <option value="{{ answer.weight }}">{{ answer.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <label>Score</label>
+
+                                </div>
+                                {% endfor %} 
+
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
             
             <div class="fixed-action-btn" style="bottom: 135px; right: 24px;">
                 <a id="menu" class="waves-effect waves-light btn btn-floating red" onclick="$('.tap-target').tapTarget('open')"><i class="material-icons">menu</i></a>
@@ -172,22 +219,70 @@
             </div>
             
             <!-- Modal Structure -->
-            <div id="searchresults" class="modal bottom-sheet">
+            <div id="evalModal" class="modal">
                 <div class="modal-content">
-                    <h4>Previous Evaluations</h4>
-                    <ul class="collection">
-                    </ul>
+                    <h4>Evaluation Guide</h4>
+                    {% load static %}
+                    <img class="materialboxed center" width="950" src="{% static '\evalLegend.png' %}">
                 </div>
                 <div class="modal-footer">
-                    <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+                    <a href="" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
                 </div>
           </div>
+            
+            <br/>
+            <br/>
+            <br/>
+            
             <div class="row">
-                <div class="col s2">
+                <div class="col s4">
+                    <h6>Acknowledgement by CSR</h6>
+                </div>
+                <div class="col s4 offset-s4">
+                    <h6>Acknowledgement by Assessor</h6>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col s4 input-field">
+                    <input id="inputAcknAgent" type="text" class="validate">
+                    <label for="inputAcknAgent">Name</label>
+                </div>
+                <div class="col s4 offset-s4 input-field">
+                    <input id="inputAcknAssessor" type="text" class="validate">
+                    <label for="inputAcknAssessor">Name</label>
+                </div>
+            </div>
+            
+            
+            <div class="row">
+                <div class="col s4 input-field">
+                    <input id="inputAcknAgentDate" type="text" class="validate">
+                    <label for="inputAcknAgentDate">Date</label>
+                </div>
+                <div class="col s4 offset-s4 input-field">
+                    <input id="inputAcknAssessorDate" type="text" class="validate">
+                    <label for="inputAcknAssessorDate">Date</label>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col s4 input-field">
+                    <input id="inputAcknAgentSignature" type="text" class="validate">
+                    <label for="inputAcknAgentSignature">Signature</label>
+                </div>
+                <div class="col s4 offset-s4 input-field">
+                    <input id="inputAcknAssessor" type="text" class="validate">
+                    <label for="inputAcknAssessor">Signature</label>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col s2 input-field">
                     <button class="btn waves-effect waves-light" type="submit" name="action" value="submit">Submit<i class="material-icons right">send</i></button>
                 </div>
                 
-                <div class="col s2">
+                <div class="col s2 input-field">
                     <button class="btn waves-effect waves-light" type="reset" name="clear" value="clear">Clear</button>
                 </div>
                 
@@ -195,6 +290,7 @@
             
             <br/>
             <br/>
+            
         </form>
     
     </div>
@@ -219,7 +315,7 @@
         });
         
         $(document).ready(function() {
-            
+            $('.materialboxed').materialbox();
             $('.blockPinned').pushpin({
               top: 100,
               offset: 70,
