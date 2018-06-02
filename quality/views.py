@@ -4,13 +4,13 @@ from __future__ import unicode_literals
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from django.db import connection
+from django.db import connection, connections
 from django.contrib.auth.models import User
 import re
 from utils.models import Profile
 from clients.models import Language
-from quality.models import Quality_Form, Quality_Section, Quality_Question, Quality_Evaluation, Quality_Response
-
+from quality.models import Form, Section, Question, Evaluation, Response, Form_Overview, Form_Evaluation
+import sys
 # Create your views here.
 #@permission_required('polls.can_vote')
 @login_required()
@@ -223,7 +223,7 @@ def formActionv2(request, form = -1):
 	agents = {}
 	languages = {}
 	fields = {}
-	dropdowns = {}
+	overview = {}
 	errors = {}
 	messages = []
 	evaluator = request.user
@@ -246,8 +246,8 @@ def formActionv2(request, form = -1):
 	for language in languages_obj:
 		languages[language.id] = language.name
 
-	q_form = Quality_Form.objects.filter(valid = True)
-	q_sections = Quality_Section.objects.filter(form = q_form).order_by('order')
+	q_form = Form.objects.filter(valid = True)
+	q_sections = Section.objects.filter(form = q_form).order_by('order')
 
 	form_render = []
 
@@ -258,7 +258,7 @@ def formActionv2(request, form = -1):
 		section['id'] = q_section.id
 
 		questions = []
-		q_questions = Quality_Question.objects.filter(section = q_section).order_by('order')
+		q_questions = Question.objects.filter(section = q_section).order_by('order')
 
 		for q_question in q_questions:
 			question = {}
@@ -266,7 +266,8 @@ def formActionv2(request, form = -1):
 			question['weight'] = q_question.weight
 			question['id'] = q_question.id
 
-			q_answers = Quality_Response.objects.filter(question = q_question).order_by('weight')
+			q_answers = Response.objects.filter(question = q_question.id).order_by('weight')
+
 			answers = []
 			for q_answer in q_answers:
 				answer = {}
@@ -279,76 +280,95 @@ def formActionv2(request, form = -1):
 		section['questions'] = questions
 		form_render.append(section)
 
-	c = connection.cursor()
+	query = "SELECT name FROM ops_system.service s where s.name like 'Payportal::%' order by name"
+
+	c = connections['ops_system'].cursor()
+
+	c.execute(query)
+
+	results = c.fetchall()
+	service = []
+	for result in results:
+		service.append(result[0])
+
+	c.close()
+
+
 
 	#Action the form when submitted, and evaluate the form.
 	if request.POST:
 
 		for key, value in request.POST.items():
-			pattern = re.compile("^([\d]+)$")
+			pattern = re.compile("^([\w])([\d]+)$")
 
-			if pattern.match(key) or key == "evalType" or key == "language" or key == "agentName":
-				dropdowns[key] = value
-			else:
+			if pattern.match(key):
 				fields[key] = value
+			elif "select" in key or "input" in key or "calendar" in key:
+				overview[key] = value
 
-		if 'agentName' not in request.POST:
+		print(fields)
+
+		if 'selectAgentName' not in request.POST:
 			errors['agentName'] = "Agent Name is required"
 
-		if 'language' not in request.POST:
+		if 'selectLanguage' not in request.POST:
 			errors['language'] = "Language is required"
 
-		if len(request.POST['walletNumber']) == 0:
-			errors['walletNumber'] = "Wallet NUmberis required"
+		if len(request.POST['inputWalletNumber']) == 0:
+			errors['walletNumber'] = "Wallet NUmber is required"
 
-		if len(request.POST['dateCall']) == 0:
+		if len(request.POST['calendarDateCall']) == 0:
 			errors['dateCall'] = "Date of Call is required"
 
-		if len(request.POST['typeCall']) == 0:
-			errors['typeCall'] = "Program Name is required"
+		if len(request.POST['inputProgramName']) == 0:
+			errors['inputProgramName'] = "Program Name is required"
 
-		if len(request.POST['recordingFile']) == 0:
+		if len(request.POST['inputRecordingFile']) == 0:
 			errors['recordingFile'] = "Recording File is required"
 
-		if 'evalType' not in request.POST:
+		if 'selectEvalType' not in request.POST:
 			errors['evalType'] = "Evaluation Type is required"
 
-		if request.POST['TotalScore'] == 0:
-			errors['TotalScore'] = "At least one question needs to be scored"
+		if len(request.POST['calendarDateEval']) == 0:
+			errors['dateEval'] = "Date of Evaluation is required"
+
+		if 'selectPrimaryReason' not in request.POST:
+			errors['selectPrimaryReason'] = "Primary Reason for contact is required"
+
 
 		if errors:
-			c.close()
-			return render(request, 'quality/default.html', {'errors': errors, 'supervisor': supervisor, 'agents': agents, 'languages': languages})
+			return render(request, 'quality/form_v2.html', {'errors': errors, 'supervisor': supervisor, 'agents': agents, 'languages': languages, 'form':form_render, 'service':service, "fields": fields, "overview": overview})
 		else:
 			#Evaluate if the form was submited vs udated
 			if form == -1:
 				try:
-					#save the general details first
-					c.execute("INSERT INTO ops_system.quality_form (agent_id, language, wallet_id, date_of_call, type_of_call, eval_id, recording_file, score) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", [request.POST['agentName'], request.POST['language'], request.POST['walletNumber'], request.POST['dateCall'], request.POST['typeCall'], request.POST['evalName'], request.POST['recordingFile'], request.POST['TotalScore']])
+					pattern = re.compile("^([\d]+)$")
 
-					formID = c.lastrowid
+					f = Form_Overview(created_by = request.user.profile, score = overview['inputTotalScore'])
+					f.save()
 
-					#save each field
-					for key, value in fields.items():
-						c.execute("INSERT INTO ops_system.quality_responses (form_id, field_name, field_value) VALUES (%s, %s, %s)", [formID, key, value])
-					#confirm form has been saved
-					messages.append("<script>Materialize.toast('New record created successfully. The evaluation ID is: " + str(formID) + "', 4000, 'green');</script>")
-				except:
+					for k, v in fields.items():
+						key = str(k).replace("select", "").replace("comments", "").replace("input", "")
+						q = Question.objects.get(id = key)
+						answer_q = Evaluation(field=str(k), value=str(v), question=q, form_overview = f)
+						answer_q.save()
+
+					for k, v in overview.items():
+						key = str(k).replace("select", "")
+						answer_q = Form_Evaluation(field=str(k), value=str(v), form_overview = f)
+						answer_q.save()
+					messages.append("New record created successfully. The evaluation ID is: " + str(f.id))
+				except Exception as e:
 					#send error back that there was an issue
-					messages.append("<script>Materialize.toast('Error unable to save form', 4000, 'red');</script>")
+					print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+					errors['unableSave'] = "There was an error saving the form, please try again"
 			elif(int(form) > -1):
 				try:
-					#save the general details first
-					c.execute("UPDATE ops_system.quality_form set agent_id = %s, language = %s, wallet_id = %s, date_of_call = %s, type_of_call = %s, eval_id = %s, recording_file = %s, score = %s WHERE id = %s" , [request.POST['agentName'], request.POST['language'], request.POST['walletNumber'], request.POST['dateCall'], request.POST['typeCall'], request.POST['evalName'], request.POST['recordingFile'], request.POST['TotalScore'], form])
 
-					#save each field
-					for key, value in fields.items():
-						c.execute("REPLACE INTO ops_system.quality_responses (form_id, field_name, field_value) VALUES (%s, %s, %s)", [form, key, value])
-					#confirm form has been saved
 					messages.append("Evaluation ID " + str(form) + " has been updated.")
 				except:
 					#send error back that there was an issue
-					errors['general'] = "Error unable to save form"
+					errors['general'] = "Error unable to update form"
 	elif int(form) > -1:
 		print form
 		c.execute("SELECT * FROM ops_system.quality_responses where form_id = %s", [form,])
@@ -369,4 +389,4 @@ def formActionv2(request, form = -1):
 				fields[row[2]] = row[3]
 
 	c.close()
-	return render(request, 'quality/form_v2.html', {'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns, 'form':form_render})
+	return render(request, 'quality/form_v2.html', {'errors': errors, 'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'overview':overview, 'form':form_render, 'service':service})

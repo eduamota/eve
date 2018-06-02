@@ -102,12 +102,14 @@ CSRF_USE_SESSIONS = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
-STATIC_ROOT = os.path.join(BASE_DIR, "eve_site", "static")
+
+STATIC_ROOT = os.path.join(BASE_DIR, "eve_site", "site_static")
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "eve_site", "site_static"),
+    os.path.join(BASE_DIR, "eve_site", "static"),
 	os.path.join(BASE_DIR, "eve_site", "static", "media")
 ]
+
 
 LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
 FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, "eve_site", "tmp")

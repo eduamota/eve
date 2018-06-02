@@ -7,50 +7,60 @@ from django.utils import timezone
 from utils.models import Profile
 
 # Create your models here.
-class Quality_Form(models.Model):
+class Form(models.Model):
     name = models.CharField(max_length=10)
     valid = models.BooleanField(default=False)
 
     def __str__(self):
        return self.name
 
-class Quality_Section(models.Model):
+class Section(models.Model):
     name = models.CharField(max_length=150)
-    form = models.ForeignKey(Quality_Form, on_delete=models.CASCADE)
+    form = models.ForeignKey(Form, on_delete=models.CASCADE)
     order = models.DecimalField(max_digits=2, decimal_places=0)
     weight = models.DecimalField(max_digits=5, decimal_places=2)
 
     def __str__(self):
         return self.name
 
-class Quality_Question(models.Model):
+class Question(models.Model):
     question = models.CharField(max_length=500)
     order = models.DecimalField(max_digits=2, decimal_places=0)
-    section =  models.ForeignKey(Quality_Section, on_delete=models.CASCADE)
+    section =  models.ForeignKey(Section, on_delete=models.CASCADE)
     weight = models.DecimalField(max_digits=5, decimal_places=2)
 
     def __str__(self):
         return self.question
 
-class Quality_Response(models.Model):
+class Response(models.Model):
     answer = models.CharField(max_length=100)
     weight = models.DecimalField(max_digits=5, decimal_places=2)
-    question = models.ManyToManyField(Quality_Question)
+    question = models.ManyToManyField(Question)
 
     def __str__(self):
         return self.answer + " " + str(self.weight)
 
-class Quality_Form_Evaluation(models.Model):
+class Form_Overview(models.Model):
+    created_time = models.DateTimeField(auto_now_add=True, blank=False)
+    created_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    score = models.DecimalField(max_digits=5, decimal_places=2)
+
+    def __str__(str):
+        return self.created_by.user.first_name + " " + self.created_by.user.last_name + " " + self.score
+
+class Form_Evaluation(models.Model):
     field = models.CharField(max_length=150)
     value = models.CharField(max_length=150)
+    form_overview = models.ForeignKey(Form_Overview, on_delete=models.CASCADE)
 
     def __str__(str):
         return self.field
 
-class Quality_Evaluation(models.Model):
+class Evaluation(models.Model):
     field = models.CharField(max_length=150)
     value = models.CharField(max_length=150)
-    question = models.ForeignKey(Quality_Question, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    form_overview = models.ForeignKey(Form_Overview, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.answer

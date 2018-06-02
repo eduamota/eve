@@ -57,7 +57,7 @@
                 </div>
                 
                 <div class="input-field col s3">
-                    <select id="selectLanguage" name="selectlanguage">
+                    <select id="selectLanguage" name="selectLanguage">
                         <option value="" disabled selected>Choose a language</option>
                         {% for key, language in languages.items %}
                             <option value="{{key}}">{{language}}</option>
@@ -74,7 +74,7 @@
             
             <div class="row">
                 <div class="input-field col s3">
-                    <input id="calendarDateCall" name="CalendarDateCall" type="text" class="datepicker">
+                    <input id="calendarDateCall" name="calendarDateCall" type="text" class="datepicker">
                     <label for="calendarDateCall">Date of Call</label>
                 </div>
                 <div class="input-field col s3">
@@ -112,13 +112,23 @@
                 </div>
                 
                 <div class="input-field col s3">
-                    <input id="inputPrimaryReason" name="inputPrimaryReason" type="text" class="validate">
-                    <label for="inputPrimaryReason">Primary Reason for Contact</label>
+                    <select id="selectPrimaryReason" name="selectPrimaryReason">
+                        <option value="" disabled selected>Choose a reason for contact</option>
+                        {% for s in service %}
+                            <option value="{{s}}">{{s}}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Primary Reason for Contact</label>
                 </div>
                 
                 <div class="input-field col s3">
-                    <input id="inputSecondaryReason" name="inputSecondaryReason" type="text" class="validate">
-                    <label for="inputSecondaryReason">Secondary Reason for Contact</label>
+                    <select id="selectSecondaryReason" name="selectSecondaryReason">
+                        <option value="" disabled selected>Choose a reason for contact</option>
+                        {% for s in service %}
+                            <option value="{{s}}">{{s}}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Secondary Reason for Contact</label>
                 </div>
             
             </div>
@@ -130,7 +140,7 @@
                 <h4 class="col s2">Total Score</h4>
                 <h4 class="col s2" id="OverallTotal">0.00%</h4>
                 <div class="input-field col s3 hide">
-                    <input id="TotalScore" name="TotalScore" type="text" class="validate">
+                    <input id="inputTotalScore" name="inputTotalScore" type="text" class="validate">
                 </div>
                 <div class="input-field col s3 hide">
                     <input id="form" name="form" type="text" class="validate">
@@ -147,11 +157,11 @@
                             <div class="col s1">
                                 <a class="btn-floating btn-large waves-effect waves-light blue" id="close{{ section.id }}"><i class="material-icons">add</i></a>    
                             </div>
-                            <h4 class="col s8">{{ section.name }}</h4>
-                            <h4 class="col s3 hide" id="total{{ section.id }}">0 out of {{ section.weight }}%</h4>
-                            <h4 class="col s3 hide" id="toth{{ section.id }}">0</h4>
+                            <h5 class="col s11">{{ section.name }}</h5>
+                            <h5 class="col s3 hide" id="total{{ section.id }}">0 out of {{ section.weight }}%</h5>
+                            <h5 class="col s3 hide" id="toth{{ section.id }}">0</h5>
                             <div id="sectionQuestions{{ section.id }}" style="display: none;">
-                            
+                            <div class="col s12">
                                 <div class="row">
                             {% for q in section.questions %}
                                 
@@ -162,6 +172,7 @@
                                 
                             {% endfor %}
                                     </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -173,15 +184,26 @@
                             <div class="col s1">
                                 <a class="btn-floating btn-large waves-effect waves-light blue" id="close{{ section.id }}"><i class="material-icons">add</i></a>
                             </div>
-                            <h4 class="col s8">{{ section.name }} - {{ section.weight }}% of Total</h4>
-                            <h4 class="col s3" id="total{{ section.id }}">0 out of {{ section.weight }}%</h4>
-                            <h4 class="col s3 hide" id="toth{{ section.id }}">0</h4>
+                            <h5 class="col s8">{{ section.name }} - {{ section.weight }}% of Total</h5>
+                            <h5 class="col s3" id="total{{ section.id }}">0 out of {{ section.weight }}%</h5>
+                            <h5 class="col s3 hide" id="toth{{ section.id }}">0</h5>
                             <div id="sectionQuestions{{ section.id }}" style="display: none;">
 
                                 {% for q in section.questions %}
+                                
+                                {% if q.question == "Comments" %}
+                                
+                                <div class="input-field col s12">
+                                  <textarea id="input{{ section.id }}" name="input{{ section.id }}" class="materialize-textarea"></textarea>
+                                  <label for="input{{ section.id }}">Comments</label>
+                                </div>
+                                
+                                
+                                {% else %}
+                                <div class="col s12">
                                 <div class="row">
                                     <h5 id="{{ q.id }}L" name="{{ q.id }}L" class="col s6 offset-s1">{{ q.question }}</h5>
-                                    <select id="{{ q.id }}" name="{{ q.id }}" class="col s2"  v-model="question{{q.id}}">
+                                    <select id="select{{ q.id }}" name="select{{ q.id }}" class="col s2"  v-model="question{{q.id}}">
                                         <option value="0" disabled selected>Select a score</option>
                                         {% for answer in q.answers %}
                                         <option value="{{ answer.weight }}">{{ answer.name }}</option>
@@ -190,9 +212,12 @@
                                     <label>Score</label>
 
                                 </div>
+                                </div>
+                                {% endif %}
                                 {% endfor %} 
-
+                                
                             </div>
+                            
                         </div>
                     </div>
                 {% endif %}
@@ -210,10 +235,10 @@
                     <p>.</p>
                     <p>.</p>
                     <h5>Evaluation Legend</h5>
-                    <p>4 Exceptional  - Exceptionally meets full requirements
-                    <br /><br />3 Exceptional  - Meets requirements
-                    <br /><br />2 Exceptional  - Partially meets the requirement. <br /> &nbsp;&nbsp;&nbsp;&nbsp; Needs improvement
-                    <br /><br />1 Exceptional  - Fails to meet requirement. <br /> &nbsp;&nbsp;&nbsp;&nbsp; Needs improvement
+                    <p>Exceeds Expectations (87% and above) = Exceeds key requirements.
+                    <br /><br />Meets Expectations (70 to 86%) = Meets key requirements.
+                    <br /><br />Partially Meets Expectations (40 to 69%) = Partially meets key requirements.
+                    <br /><br />Does Not Meet Expectations (0 to 39%) = Fails to meet minimum requirements.
                     <br /><br />Not Applicable (N/A)  - Does not apply to the item selection or not observed</p>
                 </div>
             </div>
@@ -223,7 +248,7 @@
                 <div class="modal-content">
                     <h4>Evaluation Guide</h4>
                     {% load static %}
-                    <img class="materialboxed center" width="950" src="{% static '\evalLegend.png' %}">
+                    <img class="materialboxed center" width="950" src="{% static '\media\evalLegend.png' %}">
                 </div>
                 <div class="modal-footer">
                     <a href="" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
@@ -323,7 +348,7 @@
             
             $("select").material_select(); 
             
-            $('#dateCall').pickadate({
+            $('#calendarDateCall').pickadate({
                 selectMonths: true, // Creates a dropdown to control month
                 selectYears: 15, // Creates a dropdown of 15 years to control year,
                 today: 'Today',
@@ -331,6 +356,19 @@
                 close: 'Ok',
                 closeOnSelect: false, // Close upon selecting a date,
                 format: 'yyyy-mm-dd', 
+                dateFormat: 'yyyy-mm-dd',
+                formatSubmit: 'yyyy-mm-dd',
+              });
+            
+            $('#calendarDateEval').pickadate({
+                selectMonths: true, // Creates a dropdown to control month
+                selectYears: 15, // Creates a dropdown of 15 years to control year,
+                today: 'Today',
+                clear: 'Clear',
+                close: 'Ok',
+                closeOnSelect: false, // Close upon selecting a date,
+                format: 'yyyy-mm-dd', 
+                dateFormat: 'yyyy-mm-dd',
                 formatSubmit: 'yyyy-mm-dd',
               });
             
@@ -354,46 +392,78 @@
             {% endfor %}
         
         {% endif %}
-        
-            $('#dateCall').pickadate({ dateFormat: 'yyyy-mm-dd',  formatSubmit: 'yyyy-mm-dd',});
             
             {% for section in form %} 
                 {% for question in section.questions %} 
-                $("#{{question.id}}").change(function(){
-                    evalSection({{section.id}}, {{section.weight}}, {{section.questions|length}});
+                $("#select{{question.id}}").change(function(){
+                    evalSection({{section.id}}, {{section.weight}}, {{section.questions|length}}, {%if "Security" in section.name %} true {% else %} false {% endif %});
                 });
                 {% endfor %}
             {% endfor %}
             
-            function evalSection(fNum, perc, questions){
+        function evalSection(fNum, perc, questions, failed){
             var numFields = 0;
             var total = 0;
+            var allFailed = false;
             selectObjects = $('#sectionQuestions' + fNum + ' select');
                 
             selectObjects.each(function(index){
                 value = $(this).val()
-                if(value != "NA" && value != null){
+                if(value != "NA" && value != null && !allFailed){
                     total += parseFloat(value);
+                    if(failed && parseFloat(value) == 0){
+                        allFailed = true;
+                    }
                 }
             });
+                
+            if(allFailed){
+                total = 0;
+            }
             
             $("#total"+fNum).text(total + "% out of " + perc + "%");
             $("#toth"+fNum).text(total);
             
-            evalTotal();
+            evalTotal(allFailed);
         }
         
-        function evalTotal(){
+        function evalTotal(failed){
             var total = 0;
             $('[id^="toth"]').each(function(index){
                 total += parseFloat($(this).text());
             });
+            
+            if(failed){
+                total = 0;
+            }
 
             $("#OverallTotal").text(total + "%");
-            $("#TotalScore").val(total);
+            $("#inputTotalScore").val(total);
         }
             
-            });
+            
+                 
+        {% if fields %}
+            {% for field, value in fields.items %}
+                {% if "select" in field %}
+                    $('#{{field}}').val('{{value}}').trigger('change');
+                    $('#{{field}}').material_select(); 
+                 {% else %}
+                    $('#{{field}}').val('{{value}}');
+                 {% endif %}
+            {% endfor %}
+            
+            {%for field, value in overview.items %}
+                {% if "select" in field %}
+                    $('#{{field}}').val('{{value}}').trigger('change');
+                    $('#{{field}}').material_select(); 
+                 {% else %}
+                    $('#{{field}}').val('{{value}}');
+                 {% endif %}
+            {% endfor %}
+        
+        {% endif %}
+        });
     </script>
 {% endblock content %}
     
