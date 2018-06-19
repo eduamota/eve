@@ -271,7 +271,7 @@ def getTeamShifts(request):
 				if start_d.date() < start.date():
 					start_d = start.replace(hour=0, minute=0)
 				if end_d.date() > start.date():
-					end_d = end_d.replace(hour=0, minute=0)
+					end_d = start.replace(hour=23, minute=59)
 
 				schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift", "id":sh1.pk, "resourceId": str(profile.user.pk), "color":"#008288", "textColor":"#fff"})
 
@@ -573,7 +573,7 @@ def review_requests(request):
 		if len(st_type) > 0:
 			req = req.filter(event__group__name = st_type)
 
-		results = {}
+		results = []
 		for r in req:
 			values = []
 			values.append(r.pk)
@@ -588,18 +588,28 @@ def review_requests(request):
 				values.append("Rejected")
 
 			values.append(r.submitted_time)
-			values.append(r.actioned_by)
+			values.append(r.actioned_by.first_name + " " + r.actioned_by.last_name)
+
+			values.append(r.start_date_time)
+			values.append(r.end_date_time)
+
+			all_notes = []
 
 			try:
-				notes = Shift_Exception_Note.objects.filter(shift_exception = r).order_by('-created_time')[:1]
+				notes = Shift_Exception_Note.objects.filter(shift_exception = r).order_by('-created_time')
+
 				for n in notes:
-					values.append(n.note)
+					all_notes.append(datetime.strftime(n.created_time, "%c") + " by " + n.created_by.user.first_name + " " + n.created_by.user.last_name + ": " + n.note)
 
-			except:
-				values.append("No Notes")
+				if len(notes) == 0:
+					all_notes.append("No Notes")
+
+			except Exception as e:
+				print(e)
+				all_notes.append("No Notes")
 
 
-			results[r.pk] = values
+			results.append({'id': r.pk, 'values': values, 'notes': all_notes})
 		#print req.query
 		#print len(req)
 		#print results

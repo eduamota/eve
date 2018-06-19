@@ -20,7 +20,14 @@
                 var user_id = '{{user.id}}';
                 user_id = parseInt(user_id);
                 console.log(user_id);
-                var data = {"status": st, "actioned_by": user_id};
+                
+                approved = 0
+                
+                if (st == "1"){
+                    approved = 1
+                }
+                
+                var data = {"status": st, "actioned_by": user_id, "approved": approved};
                 var shift_exc = "";
                 $.ajax({
                     url: '/api/shift_exception/' + id + "/",
@@ -145,20 +152,23 @@
                             <th>Requested by</th>
                             <th>Status</th>
                             <th>Received on</th>
-                            <th>Actioned by</th>
+                            <th>Last Actioned by</th>
+                            <th>From</th>
+                            <th>To</th>
                             <th>Notes</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% if results %}
-                            {% for id, values in results.items %}
+                            {% for result in results %}
                                 <tr>
-                                {% for r in values %}
+                                {% for r in result.values %}
                                     <th><a>{{r}}</a></th>
                                 {% endfor %}
-                                    <th><a id="approve-{{id}}" class="btn-floating btn-tiny waves-effect waves-light modal-trigger {% if values.3 == 'Approved'  %} hide {% endif %} " href="#modal-approved-{{id}}"><i class="material-icons">check</i></a>
-                                    <a id="reject-{{id}}" class="btn-floating btn-tiny waves-effect waves-light modal-trigger {% if values.3 == 'Rejected'  %} hide {% endif %} " href="#modal-rejected-{{id}}"><i class="material-icons">close</i></a></th>            
+                                    <th><a id="notes-{{result.id}}" class="btn-floating btn-tiny waves-effect waves-light modal-trigger" href="#modal-notes-{{result.id}}">{% if result.notes.0 == "No Notes" %}<i class="material-icons">speaker_notes_off</i> {% else %} <i class="material-icons">message</i>{% endif %}</a></th>
+                                    <th><a id="approve-{{result.id}}" class="btn-floating btn-tiny waves-effect waves-light modal-trigger {% if result.values.3 == 'Approved'  %} hide {% endif %} " href="#modal-approved-{{result.id}}"><i class="material-icons">check</i></a>
+                                    <a id="reject-{{result.id}}" class="btn-floating btn-tiny waves-effect waves-light modal-trigger {% if result.values.3 == 'Rejected'  %} hide {% endif %} " href="#modal-rejected-{{result.id}}"><i class="material-icons">close</i></a></th>            
                                 </tr>
                             {% endfor %}
                         {% endif %}
@@ -167,27 +177,38 @@
             </div>
             
             {% if results %}
-                {% for id, values in results.items %}
-                     <div id="modal-approved-{{id}}" class="modal">
+                {% for result in results %}
+                     <div id="modal-approved-{{result.id}}" class="modal">
                         <div class="modal-content">
                           <h4>Please add a note</h4>
-                          <textarea id="approved-notes-{{id}}"></textarea>
+                          <textarea id="approved-notes-{{result.id}}"></textarea>
                         </div>
                         <div class="modal-footer">
-                          <a onClick="actionRequest('{{id}}', 1);" class="modal-action modal-close waves-effect waves-green btn-flat">Save</a>
+                          <a onClick="actionRequest('{{result.id}}', 1);" class="modal-action modal-close waves-effect waves-green btn-flat">Save</a>
                         </div>
                       </div>
             
-                    <div id="modal-rejected-{{id}}" class="modal">
+                    <div id="modal-rejected-{{result.id}}" class="modal">
                         <div class="modal-content">
                           <h4>Please add a note</h4>
-                          <textarea id="rejected-notes-{{id}}"></textarea>
+                          <textarea id="rejected-notes-{{result.id}}"></textarea>
                         </div>
                         <div class="modal-footer">
-                          <a onClick="actionRequest('{{id}}', 2);" class="modal-action modal-close waves-effect waves-green btn-flat">Save</a>
+                          <a onClick="actionRequest('{{result.id}}', 2);" class="modal-action modal-close waves-effect waves-green btn-flat">Save</a>
                         </div>
                       </div>
             
+                    <div id="modal-notes-{{result.id}}" class="modal">
+                        <div class="modal-content">
+                            <h4>Notes</h4>
+                            {% for note in result.notes %}
+                            <span>{{note}}</span><br/>
+                            {% endfor %}
+                        </div>
+                        <div class="modal-footer">
+                          <a class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+                        </div>
+                      </div>
                 {% endfor %}
             {% endif %}
             

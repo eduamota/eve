@@ -56,4 +56,5 @@ urlpatterns = [
 	url(r'^agent/', views.agent_dashboard, name="agent_dashboard"),
 	url(r'^myadmin/', include(admin_site.urls)),
 	url(r'^$', views.home_page, name="home_page"),
+    url(r'^accounts/password/$', views.change_password, name='change_password'),
 ]

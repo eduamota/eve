@@ -11,6 +11,7 @@ from utils.models import Profile
 from clients.models import Language
 from quality.models import Form, Section, Question, Evaluation, Response, Form_Overview, Form_Evaluation
 import sys
+from django.db.models import Q
 # Create your views here.
 #@permission_required('polls.can_vote')
 @login_required()
@@ -142,7 +143,6 @@ def formAction(request, form = -1):
 	return render(request, 'quality/default.html', {'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
 
 @login_required()
-
 def formSearch(request):
 	dbFields = ["agent_id", "language", "wallet_id","date_of_call", "type_of_call", "eval_id", "recording_file", "score"]
 
@@ -217,10 +217,10 @@ def formSearch(request):
 
 
 @login_required()
-def formActionv2(request, form = -1):
+def formActionv2(request, form_name = "Phone-Form", form = -1):
 
 	#Setup variables to keep track of variables for options in page
-	agents = {}
+	agents = []
 	languages = {}
 	fields = {}
 	overview = {}
@@ -231,15 +231,17 @@ def formActionv2(request, form = -1):
 
 	#Run queries to retrieve the list of agents & language
 
-	sup_id = request.user.id
+	sup_id = request.user.profile.id
 	sup_name = request.user.first_name + " " + request.user.last_name
 	supervisor = {sup_id: sup_name,}
 
-	agents_obj = Profile.objects.exclude(label__contains='supervisor').exclude(label__contains="team lead")
+	agents_obj = User.objects.filter(groups__name='Agent').order_by('first_name')
 
 	for agent in agents_obj:
-		agents[agent.user.id] = agent.user.first_name + " " + agent.user.last_name
-
+		temp = {}
+		temp['name'] = agent.first_name + " " + agent.last_name
+		temp['id'] = agent.profile.id
+		agents.append(temp)
 
 	languages_obj = Language.objects.all()
 
@@ -247,6 +249,9 @@ def formActionv2(request, form = -1):
 		languages[language.id] = language.name
 
 	q_form = Form.objects.filter(valid = True)
+
+	q_form.filter(name = form_name)[0]
+
 	q_sections = Section.objects.filter(form = q_form).order_by('order')
 
 	form_render = []
@@ -282,7 +287,7 @@ def formActionv2(request, form = -1):
 
 	query = "SELECT name FROM ops_system.service s where s.name like 'Payportal::%' order by name"
 
-	c = connections['ops_system'].cursor()
+	c = connection.cursor()
 
 	c.execute(query)
 
@@ -293,20 +298,28 @@ def formActionv2(request, form = -1):
 
 	c.close()
 
+	is_agent = False
 
+	group = request.user.groups.values_list('name', flat=True)
+
+	if "Agent" in group:
+		is_agent = True
 
 	#Action the form when submitted, and evaluate the form.
 	if request.POST:
 
 		for key, value in request.POST.items():
-			pattern = re.compile("^([\w])([\d]+)$")
+			pattern = re.compile("^([\w]+)([\d]+)$")
 
 			if pattern.match(key):
 				fields[key] = value
 			elif "select" in key or "input" in key or "calendar" in key:
 				overview[key] = value
 
-		print(fields)
+		#print(fields)
+
+		if request.POST['form_id'] != "-1" and form == -1:
+			form = int(request.POST['form_id'])
 
 		if 'selectAgentName' not in request.POST:
 			errors['agentName'] = "Agent Name is required"
@@ -337,7 +350,7 @@ def formActionv2(request, form = -1):
 
 
 		if errors:
-			return render(request, 'quality/form_v2.html', {'errors': errors, 'supervisor': supervisor, 'agents': agents, 'languages': languages, 'form':form_render, 'service':service, "fields": fields, "overview": overview})
+			return render(request, 'quality/form_v2.html', {'errors': errors, 'supervisor': supervisor, 'agents': agents, 'languages': languages, 'form':form_render, 'service':service, "fields": fields, "overview": overview, 'form_id': form ,'is_agent':is_agent})
 		else:
 			#Evaluate if the form was submited vs udated
 			if form == -1:
@@ -346,6 +359,8 @@ def formActionv2(request, form = -1):
 
 					f = Form_Overview(created_by = request.user.profile, score = overview['inputTotalScore'])
 					f.save()
+
+					form = f.id
 
 					for k, v in fields.items():
 						key = str(k).replace("select", "").replace("comments", "").replace("input", "")
@@ -362,31 +377,139 @@ def formActionv2(request, form = -1):
 					#send error back that there was an issue
 					print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 					errors['unableSave'] = "There was an error saving the form, please try again"
+					#errors['error'] = 'Error on line {}'.format(sys.exc_info()[-1].tb_lineno) + " " + type(e).__name__ + e
 			elif(int(form) > -1):
+
+				form_ov = Form_Overview.objects.get(pk = form)
 				try:
+					for k, v in fields.items():
+						key = str(k).replace("select", "").replace("comments", "").replace("input", "")
+						q = Question.objects.get(id = key)
+						try:
+							answer_q = Evaluation.objects.get(field=str(k), form_overview = form)
+							answer_q.value = v
+							answer_q.question = q
+							answer_q.save()
+						except:
+							q = Question.objects.get(id = key)
+							answer_q = Evaluation(field=str(k), value=str(v), question=q, form_overview = form_ov)
+							answer_q.save()
+
+					for k, v in overview.items():
+						key = str(k).replace("select", "")
+						try:
+							answer_q = Form_Evaluation.objects.get(field=str(k), form_overview = form)
+							answer_q.value = v
+							answer_q.save()
+						except:
+							key = str(k).replace("select", "")
+							answer_q = Form_Evaluation(field=str(k), value=str(v), form_overview = form_ov)
+							answer_q.save()
 
 					messages.append("Evaluation ID " + str(form) + " has been updated.")
-				except:
+				except Exception as e:
 					#send error back that there was an issue
-					errors['general'] = "Error unable to update form"
+					print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+					errors['unableSave'] = "There was an error saving the form, please try again"
+					#errors['error'] = 'Error on line {}'.format(sys.exc_info()[-1].tb_lineno) + " " + type(e).__name__ + e
 	elif int(form) > -1:
-		print form
-		c.execute("SELECT * FROM ops_system.quality_responses where form_id = %s", [form,])
-		results = c.fetchall()
 
-		for row in results:
-			pattern = re.compile("^([\d]+)$")
+		overview_q = Form_Evaluation.objects.filter(form_overview = form)
 
-			if pattern.match(row[2]) or row[2] == "evalType" or row[2] == "language" or row[2] == "agentName" or row[2] == "evalName":
-				if row[2] == 'evalName':
-					c.execute("SELECT id, concat(first_name, ' ', last_name) as name FROM ops_system.otrs_user where id = %s", [row[3],])
-					sup = c.fetchone()
-					print sup
-					supervisor[sup[0]] = sup[1]
+		for o_q in overview_q:
+			overview[o_q.field] = o_q.value
 
-				dropdowns[row[2]] = row[3]
-			else:
-				fields[row[2]] = row[3]
+		#print(overview)
+
+		field_q = Evaluation.objects.filter(form_overview = form)
+
+		for f_q in field_q:
+			fields[f_q.field] = f_q.value
+
+		if is_agent and str(overview['selectAgentName']) != str(request.user.profile.id):
+			errors['notauth'] = "You are not authorize to see this evaluation"
+			fields = {}
+			overview = {}
+
+		#print(overview)
+		#print(fields)
 
 	c.close()
-	return render(request, 'quality/form_v2.html', {'errors': errors, 'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'overview':overview, 'form':form_render, 'service':service})
+	return render(request, 'quality/form_v2.html', {'errors': errors, 'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'overview':overview, 'form':form_render, 'service':service, 'form_id':form, 'is_agent':is_agent})
+
+@login_required()
+def formSearchv2(request):
+	#Setup variables to keep track of variables for options in page
+	agents = []
+	languages = {}
+	fields = {}
+	dropdowns = {}
+	errors = {}
+	messages = []
+	supervisors = []
+	sections = []
+
+	is_agent = False
+
+	group = request.user.groups.values_list('name', flat=True)
+
+	if "Agent" in group:
+		is_agent = True
+
+	sups_obj = User.objects.filter(Q(groups__name='Supervisor') | Q(groups__name="Director") | Q(groups__name="TeamLead") | Q(groups__name="QA") | Q(groups__name="Training")).order_by('first_name')
+	#print(sups_obj.query)
+	for agent in sups_obj:
+		temp = {}
+		temp['name'] = agent.first_name + " " + agent.last_name
+		temp['id'] = agent.id
+		supervisors.append(temp)
+
+	agents_obj = User.objects.filter(groups__name='Agent').order_by('first_name')
+
+	if is_agent:
+		agents_obj = User.objects.filter(pk = request.user.id)
+
+	for agent in agents_obj:
+		temp = {}
+		temp['name'] = agent.first_name + " " + agent.last_name
+		temp['id'] = agent.profile.id
+		agents.append(temp)
+
+	languages_obj = Language.objects.all()
+
+	for language in languages_obj:
+		languages[language.id] = language.name
+
+	if request.POST:
+		#print(request.POST)
+		form_search = Form_Evaluation.objects.all()
+		searchq = Q()
+		for key, value in request.POST.items():
+			if "select" in key or "input" in key or "calendar" in key:
+				if len(value) > 0:
+					searchq = searchq | (Q(field = key) & Q(value = value))
+					fields[key] = value
+
+		form_search = form_search.filter(searchq)
+
+		#print(form_search.query)
+		forms = {}
+		if form_search:
+			for f_s in form_search:
+				if f_s.form_overview not in forms:
+					forms[f_s.form_overview.id] = {}
+					f_search = Form_Evaluation.objects.filter(form_overview = f_s.form_overview)
+					for f in f_search:
+						if "Agent" in f.field or "EvalName" in f.field:
+							a = Profile.objects.get(pk = f.value)
+							forms[f.form_overview.id][f.field] = a.user.first_name + " " + a.user.last_name
+						elif "Language" in f.field:
+							l = Language.objects.get(pk = f.value)
+							forms[f.form_overview.id][f.field] = l.name
+						else:
+							forms[f.form_overview.id][f.field] = f.value
+
+
+		return render(request, "quality/search_v2.html", {"results":forms, 'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
+
+	return render(request, "quality/search_v2.html", {'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})

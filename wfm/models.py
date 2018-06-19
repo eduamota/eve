@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from utils.models import Profile    
+from utils.models import Profile
 
 class Day_Model(models.Model):
     name = models.CharField(max_length=40)
@@ -13,16 +13,16 @@ class Day_Model(models.Model):
     day_end_time = models.TimeField(default='14:30:00')
     day_end_diff = models.DecimalField(max_digits=1, decimal_places=0, default=0)
     time_zone = models.CharField(max_length=50, blank=True)
-    
+
     def __str__(self):              # __unicode__ on Python 2
         return (self.name + " " + self.time_zone)
-								
+
 class Job_Status(models.Model):
     name = models.CharField(max_length=10)
-				
+
     def __str__(self):
        return self.name
-								
+
 class Job(models.Model):
     job_type = models.CharField(max_length=20)
     from_date = models.DateTimeField()
@@ -32,12 +32,12 @@ class Job(models.Model):
     parameters = models.CharField(max_length=200, blank=True, default=None)
     actioned_time = models.DateTimeField(default=timezone.now, blank=True)
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
-    
+
     def __str__(self):              # __unicode__ on Python 2
         return "%s %s" % (str(self.job_type), str(self.actioned_time))
 
 class Shift(models.Model):
-    user = models.OneToOneField(Profile)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     day_model = models.ForeignKey(Day_Model, on_delete=models.CASCADE)
     valid_from = models.DateField(default="2017-01-01")
     valid_to = models.DateField(default="2017-12-31")
@@ -48,10 +48,10 @@ class Shift(models.Model):
     thursday = models.BooleanField(default=False)
     friday = models.BooleanField(default=False)
     saturday = models.BooleanField(default=False)
-    
+
     def __str__(self):              # __unicode__ on Python 2
         return "%s %s" % (str(self.user), str(self.day_model))
-								
+
 class Shift_Sequence(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     start_date_time = models.DateTimeField()
@@ -60,26 +60,26 @@ class Shift_Sequence(models.Model):
     end_diff = models.DecimalField(max_digits=1, decimal_places=0)
     actioned_time = models.DateTimeField(default=timezone.now, blank=True)
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
-				
+
     def __str__(self):
         return str(self.user)
 
 class Event_Group(models.Model):
     name = models.CharField(max_length=30)
-    
+
     def __str__(self):              # __unicode__ on Python 2
         return self.name
-    
+
 class Event(models.Model):
     name = models.CharField(max_length=40)
     group = models.ForeignKey(Event_Group, on_delete=models.CASCADE)
     color = models.CharField(max_length=7)
     text_color = models.CharField(max_length=7)
-    paid = models.BooleanField()    
-    
+    paid = models.BooleanField()
+
     def __str__(self):              # __unicode__ on Python 2
         return self.name
-    
+
 class Shift_Exception(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     shift_sequence = models.ForeignKey(Shift_Sequence, on_delete=models.CASCADE)
@@ -92,26 +92,26 @@ class Shift_Exception(models.Model):
     submitted_time = models.DateTimeField(default=timezone.now)
     actioned_time = models.DateTimeField(default=timezone.now, blank=True)
     actioned_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, default=None)
-    status = models.DecimalField(max_digits=1, decimal_places=0, default=0)    
-        
+    status = models.DecimalField(max_digits=1, decimal_places=0, default=0)
+
     def __str__(self):              # __unicode__ on Python 2
         return str(self.event)
-								
+
 class Shift_Exception_Note(models.Model):
     shift_exception = models.ForeignKey(Shift_Exception, on_delete=models.CASCADE)
     note = models.CharField(max_length=250)
     created_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
     created_time = models.DateTimeField(default=timezone.now)
-	
+
     def __str__(self):              # __unicode__ on Python 2
         return str(self.created_by.first_name) + " " + str(self.created_by.last_name)
-								
+
 class Log_Type(models.Model):
     name = models.CharField(max_length=50)
-				
+
     def __str__(self):
         return str(self.name)
-								
+
 class Log(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_time = models.DateTimeField(default=timezone.now)
@@ -119,6 +119,6 @@ class Log(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, blank=True, default=None)
     log_type = models.ForeignKey(Log_Type, on_delete=models.CASCADE)
     log_info = models.TextField()
-				
+
     def __str__(self):              # __unicode__ on Python 2
         return self.event_type.name + " " + self.created_by.first_name

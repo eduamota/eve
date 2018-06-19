@@ -49,8 +49,8 @@
                 <div class="input-field col s3">
                     <select id="selectAgentName" name="selectAgentName">
                         <option value="" disabled selected>Choose an agent</option>
-                        {% for key, agent in agents.items %}
-                            <option value="{{key}}">{{agent}}</option>
+                        {% for agent in agents %}
+                            <option value="{{agent.id}}">{{agent.name}}</option>
                         {% endfor %}
                     </select>
                     <label>Agent Name</label>
@@ -91,9 +91,9 @@
                     <select id="selectEvalType" name="selectEvalType">
                         <option value="" disabled selected>Choose a Bank</option>
                         <option value="Metabank">Metabank</option>
-                        <option value="Metabank">All Trans</option>
-                        <option value="Metabank">Bancorp</option>
-                        <option value="Metabank">Valitor</option>
+                        <option value="All Trans">All Trans</option>
+                        <option value="Bancorp">Bancorp</option>
+                        <option value="Valitor">Valitor</option>
                         <option value="Internal">HW Internal</option>
                     </select>
                     <label>Related to Bank</label>
@@ -141,12 +141,13 @@
                 <h4 class="col s2" id="OverallTotal">0.00%</h4>
                 <div class="input-field col s3 hide">
                     <input id="inputTotalScore" name="inputTotalScore" type="text" class="validate">
+                    <input id="inputAllFailed" name="inputAllFailed" type="text" class="validate" value="000000">
                 </div>
                 <div class="input-field col s3 hide">
-                    <input id="form" name="form" type="text" class="validate">
+                    <input id="form_id" name="form_id" type="text" class="validate" value="{{ form_id }}">
                 </div>
                 <a class="waves-effect waves-light btn col offset-s2 red modal-trigger" href="#evalModal">Evaluation legend</a>
-                <a class="waves-effect waves-light btn col offset-s1 green" href="/quality/form/search">Search Evaluations</a>
+                <a class="waves-effect waves-light btn col offset-s1 green" href="/quality/form/v2/search">Search Evaluations</a>
 
             </div>
                 
@@ -303,12 +304,13 @@
             </div>
             
             <div class="row">
+                {% if not is_agent %}
                 <div class="col s2 input-field">
                     <button class="btn waves-effect waves-light" type="submit" name="action" value="submit">Submit<i class="material-icons right">send</i></button>
                 </div>
-                
+                {% endif %}
                 <div class="col s2 input-field">
-                    <button class="btn waves-effect waves-light" type="reset" name="clear" value="clear">Clear</button>
+                    <input class="btn waves-effect waves-light" type="button" name="clear" value="Clear" onClick="newDoc()">
                 </div>
                 
             </div>
@@ -321,6 +323,10 @@
     </div>
     
     <script>
+        
+        function newDoc() {
+            window.location = window.location.href;
+        }
         
         var app = new Vue({
             delimiters: ['[[', ']]'],
@@ -383,7 +389,9 @@
             
         {% if fields %}
             {% for field, value in fields.items %}
-                $('#{{field}}').val('{{value}}');
+                {% autoescape off %}
+                $('#{{field}}').val("{{value|escapejs}}");
+                 {% endautoescape %}
             {% endfor %}
             
             {%for field, value in dropdowns.items %}
@@ -405,6 +413,10 @@
             var numFields = 0;
             var total = 0;
             var allFailed = false;
+            
+            if(failed){$("#inputAllFailed").val("False");}
+            
+            
             selectObjects = $('#sectionQuestions' + fNum + ' select');
                 
             selectObjects.each(function(index){
@@ -413,12 +425,17 @@
                     total += parseFloat(value);
                     if(failed && parseFloat(value) == 0){
                         allFailed = true;
+                        $("#inputAllFailed").val("True");
                     }
                 }
             });
                 
             if(allFailed){
                 total = 0;
+            }
+            
+            if($("#inputAllFailed").val() == "True"){
+                allFailed = true;
             }
             
             $("#total"+fNum).text(total + "% out of " + perc + "%");
@@ -449,7 +466,9 @@
                     $('#{{field}}').val('{{value}}').trigger('change');
                     $('#{{field}}').material_select(); 
                  {% else %}
-                    $('#{{field}}').val('{{value}}');
+                    {% autoescape off %}
+                    $('#{{field}}').val('{{value|escapejs}}');
+                    {% endautoescape %}
                  {% endif %}
             {% endfor %}
             
@@ -458,7 +477,9 @@
                     $('#{{field}}').val('{{value}}').trigger('change');
                     $('#{{field}}').material_select(); 
                  {% else %}
-                    $('#{{field}}').val('{{value}}');
+                    {% autoescape off %}
+                    $('#{{field}}').val('{{value|escapejs}}');
+                    {% endautoescape %}
                  {% endif %}
             {% endfor %}
         

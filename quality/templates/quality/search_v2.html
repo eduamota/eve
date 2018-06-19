@@ -1,0 +1,204 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Quality{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+             .error {color: #FF0000;}
+             
+             .pinned {width: 70%; padding-left: 80px}
+        </style>
+    {% endblock head_css_page %}
+{% block pagetitle %}Search Quality Call Assurance{% endblock pagetitle %}
+{% block content %}
+    {% if errors %}
+        
+        {% for field, value in errors.items %}
+            <script>Materialize.toast('{{value}}', 4000, 'red');</script>
+        {% endfor %}
+        
+    {% endif %}
+
+    {% if messages %}
+        {% for message in messages %}
+            <script>Materialize.toast('{{message}}', 4000, 'green');</script>
+        {% endfor %}
+    {% endif %}
+
+    <div class="container">
+        
+        <form method="post" action="">
+            {% csrf_token %}
+            <div class="blockPinned">
+  
+            <div class="grey lighten-2">
+            <div class="row">
+                
+                <div class="input-field col s3">
+                    <select id="selectEvalName" name="selectEvalName">
+                        <option value="" disabled selected>Choose a TM/TL</option>
+                        {% for supervisor in supervisors %}
+                            <option value="{{supervisor.id}}">{{supervisor.name}}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Who is evaluating?</label>
+                </div>
+                
+                <div class="input-field col s3">
+                    <select id="selectAgentName" name="selectAgentName">
+                        <option value="" disabled selected>Choose an agent</option>
+                        {% for agent in agents %}
+                            <option value="{{agent.id}}">{{agent.name}}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Agent Name</label>
+                </div>
+                
+                <div class="input-field col s3">
+                    <select id="selectLanguage" name="selectLanguage">
+                        <option value="" disabled selected>Choose a language</option>
+                        {% for key, language in languages.items %}
+                            <option value="{{key}}">{{language}}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Call Language</label>
+                </div>
+                
+                <div class="input-field col s3">
+                    <input id="inputWalletNumber" name="inputWalletNumber" type="text" class="validate">
+                    <label for="inputWalletNumber">Wallet / ID Number</label>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="input-field col s3">
+                    <input id="calendarDateCall" name="calendarDateCall" type="text" class="datepicker">
+                    <label for="calendarDateCall">Date of Call</label>
+                </div>
+                <div class="input-field col s3">
+                    <input id="inputProgramName" name="inputProgramName" type="text" class="validate">
+                    <label for="inputProgramName">Program Name</label>
+                </div>
+                
+                <div class="input-field col s3">
+                    <input id="inputRecordingFile" name="inputRecordingFile" type="text" class="validate">
+                    <label for="inputRecordingFile">Call ID</label>
+                </div>
+                
+                <div class="input-field col s3">
+                    <select id="selectEvalType" name="selectEvalType">
+                        <option value="" disabled selected>Evaluation Type</option>
+                        <option value="Metabank">Metabank</option>
+                        <option value="Internal">HW Internal</option>
+                    </select>
+                    <label>Evaluation Type</label>
+                </div>
+            
+            </div>
+            </div>
+            </div>
+            
+            <!-- Modal Structure -->
+            <div id="searchresults">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Form ID</th>
+                            <th>Agent</th>
+                            <th>Language</th>
+                            <th>Wallet ID</th>
+                            <th>Date of Call</th>
+                            <th>Type of Call</th>
+                            <th>Evaluator</th>
+                            <th>Recording File</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if results %}
+                            {% for id, values in results.items %}
+                                <tr>
+                                    <th><a href="/quality/form/v2/{{id}}">{{id}}</a></th>
+                                    <th><a href="/quality/form/v2/{{id}}">{{values.selectAgentName}}</a></th>
+                                    <th><a href="/quality/form/v2/{{id}}">{{values.selectLanguage}}</a></th>
+                                    <th><a href="/quality/form/v2/{{id}}">{{values.inputWalletNumber}}</a></th>
+                                    <th><a href="/quality/form/v2/{{id}}">{{values.calendarDateCall}}</a></th>
+                                    <th><a href="/quality/form/v2/{{id}}">{{values.selectEvalType}}</a></th>
+                                    <th><a href="/quality/form/v2/{{id}}">{{values.selectEvalName}}</a></th>
+                                    <th><a href="/quality/form/v2/{{id}}">{{values.inputRecordingFile}}</a></th>
+                                    <th><a href="/quality/form/v2/{{id}}">{{values.inputTotalScore}}</a></th>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table> 
+            </div>
+            <div class="row">
+                <div class="col s2">
+                    <button class="btn waves-effect waves-light" type="submit" name="action" value="submit">Search<i class="material-icons right">send</i></button>
+                </div>
+                
+                <div class="col s2 input-field">
+                    <input class="btn waves-effect waves-light" type="button" name="clear" value="Clear" onClick="newDoc()">
+                </div>
+                
+            </div>
+            
+            <br/>
+            <br/>
+        </form>
+    
+    </div>
+    
+    <script>
+        
+        function newDoc() {
+            window.location = window.location.href;
+        }
+        
+        $(document).ready(function() {
+            
+            $('.blockPinned').pushpin({
+              top: 100,
+              offset: 30,
+            });
+            
+            $('select').material_select();    
+            
+            $('#dateCall').pickadate({
+                selectMonths: true, // Creates a dropdown to control month
+                selectYears: 15, // Creates a dropdown of 15 years to control year,
+                today: 'Today',
+                clear: 'Clear',
+                close: 'Ok',
+                closeOnSelect: false, // Close upon selecting a date,
+                format: 'yyyy-mm-dd', 
+                formatSubmit: 'yyyy-mm-dd',
+              });
+            
+            $('.modal').modal();
+            
+        
+            
+        {% if fields %}
+            {% for field, value in fields.items %}
+                {% if "select" in field %}
+                    $('#{{field}}').val('{{value}}').trigger('change');
+                    $('#{{field}}').material_select(); 
+                 {% else %}
+                    $('#{{field}}').val('{{value}}');
+                 {% endif %}
+            {% endfor %}
+        
+        
+        {% endif %}
+        
+        $('#dateCall').pickadate({ dateFormat: 'yyyy-mm-dd',  formatSubmit: 'yyyy-mm-dd',});
+            
+            });
+    </script>
+{% endblock content %}
+    

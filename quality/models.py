@@ -45,12 +45,12 @@ class Form_Overview(models.Model):
     created_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
 
-    def __str__(str):
-        return self.created_by.user.first_name + " " + self.created_by.user.last_name + " " + self.score
+    def __str__(self):
+        return self.created_by.user.first_name + " " + self.created_by.user.last_name + " " + str(self.score)
 
 class Form_Evaluation(models.Model):
     field = models.CharField(max_length=150)
-    value = models.CharField(max_length=150)
+    value = models.TextField()
     form_overview = models.ForeignKey(Form_Overview, on_delete=models.CASCADE)
 
     def __str__(str):
@@ -58,7 +58,7 @@ class Form_Evaluation(models.Model):
 
 class Evaluation(models.Model):
     field = models.CharField(max_length=150)
-    value = models.CharField(max_length=150)
+    value = models.TextField(max_length=150)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     form_overview = models.ForeignKey(Form_Overview, on_delete=models.CASCADE)
 
