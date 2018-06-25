@@ -217,7 +217,7 @@ def formSearch(request):
 
 
 @login_required()
-def formActionv2(request, form_name = "Phone-Form", form = -1):
+def formActionv2(request, form_n='Phone', form = -1):
 
 	#Setup variables to keep track of variables for options in page
 	agents = []
@@ -228,6 +228,10 @@ def formActionv2(request, form_name = "Phone-Form", form = -1):
 	messages = []
 	evaluator = request.user
 	supervisor = {}
+	form_name = form_n + "-Form"
+    
+	if form_n == 'Chat':
+		form_name = 'Email-Form'
 
 	#Run queries to retrieve the list of agents & language
 
@@ -248,10 +252,8 @@ def formActionv2(request, form_name = "Phone-Form", form = -1):
 	for language in languages_obj:
 		languages[language.id] = language.name
 
-	q_form = Form.objects.filter(valid = True)
-
-	q_form.filter(name = form_name)[0]
-
+	q_form = Form.objects.filter(valid = True).filter(name = form_name)[0]
+	
 	q_sections = Section.objects.filter(form = q_form).order_by('order')
 
 	form_render = []
@@ -350,7 +352,7 @@ def formActionv2(request, form_name = "Phone-Form", form = -1):
 
 
 		if errors:
-			return render(request, 'quality/form_v2.html', {'errors': errors, 'supervisor': supervisor, 'agents': agents, 'languages': languages, 'form':form_render, 'service':service, "fields": fields, "overview": overview, 'form_id': form ,'is_agent':is_agent})
+			return render(request, 'quality/form_v2.html', {'errors': errors, 'supervisor': supervisor, 'agents': agents, 'languages': languages, 'form':form_render, 'service':service, "fields": fields, "overview": overview, 'form_id': form ,'is_agent':is_agent, 'form_type': form_n})
 		else:
 			#Evaluate if the form was submited vs udated
 			if form == -1:
@@ -435,7 +437,7 @@ def formActionv2(request, form_name = "Phone-Form", form = -1):
 		#print(fields)
 
 	c.close()
-	return render(request, 'quality/form_v2.html', {'errors': errors, 'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'overview':overview, 'form':form_render, 'service':service, 'form_id':form, 'is_agent':is_agent})
+	return render(request, 'quality/form_v2.html', {'errors': errors, 'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'overview':overview, 'form':form_render, 'service':service, 'form_id':form, 'is_agent':is_agent, 'form_type': form_n})
 
 @login_required()
 def formSearchv2(request):
