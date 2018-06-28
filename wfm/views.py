@@ -118,6 +118,9 @@ def calendar(request):
 def calendar_team(request):
 	return render(request, 'wfm/calendar_team.html', {"actions": request_actions,})
 
+def calendar_manage(request):
+	return render(request, 'wfm/calendar_manage.html', {"actions":request_actions,})
+
 def events(request, sDate = False, eDate = False):
 	schedule = getShifts(request)
 	return JsonResponse(schedule, safe=False)
@@ -126,6 +129,13 @@ def team_events(request, sDate = False, eDate = False):
 	schedule = getTeamShifts(request)
 	return JsonResponse(schedule, safe=False)
 
+def manage_events(request, sDate = False, eDate = False):
+	schedule = getAllShifts(request)
+	return JsonResponse(schedule, safe=False)
+
+def manage_exceptions(request, sDate = False, eDate = False):
+	schedule = getAllExceptions(request)
+	return JsonResponse(schedule, safe=False)
 
 def getShifts(request):
 	current_user = request.user
@@ -187,6 +197,112 @@ def getShifts(request):
 				end_d = (start + timedelta(days=1))
 
 			schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift", "color":"#008288", "textColor":"#fff"})
+
+		start = start + timedelta(days=1)
+
+	return schedule
+
+def getAllShifts(request):
+	current_user = request.user
+	user = User.objects.get(username = current_user.username)
+	profile = Profile.objects.get(user = user)
+
+	tzo = pytz.timezone(request.user.profile.location.iso_name)
+
+	start = datetime.now(tzo)
+	end = last_day_of_month(datetime.now(tzo))
+
+	if 'start' in request.GET and request.GET['start']:
+		start = request.GET['start']
+		if len(start) < 16:
+			start += "T00:00:00"
+		start = tzo.localize(datetime.strptime(start, '%Y-%m-%dT%H:%M:%S'))
+
+
+	if 'end' in request.GET and request.GET['end']:
+		end = request.GET['end']
+		if len(end) < 16:
+			end+= "T00:00:00"
+		end = tzo.localize(datetime.strptime(end, '%Y-%m-%dT%H:%M:%S'))
+
+	exceptions = Shift_Exception.objects.filter(approved=True)
+	exceptions = exceptions.filter(start_date_time__gte=start)
+	exceptions = exceptions.filter(end_date_time__lt=end)
+
+	schedule = []
+	events = {}
+
+
+	while start < end:
+		start_query = start
+		start_format = start.astimezone(tzo).strftime("%Y-%m-%d")
+		end_query = start_query + timedelta(days=1)
+
+		sh_f = Shift_Sequence.objects.filter(Q(start_date_time__range = (start_query, end_query)) |  Q(end_date_time__range = (start_query, end_query)) )
+
+		for sh1 in sh_f:
+			start_d = sh1.start_date_time.astimezone(tzo)
+			end_d = sh1.end_date_time.astimezone(tzo)
+			event_user = "Shift " + sh1.user.user.first_name + " " + sh1.user.user.last_name
+
+			if start_d < start:
+				start_d = start
+			if end_d > (start + timedelta(days=1)):
+				end_d = (start + timedelta(days=1))
+
+			schedule.append({"title": event_user,"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "color":"#008288", "textColor":"#fff"})
+
+		start = start + timedelta(days=1)
+
+	return schedule
+
+def getAllExceptions(request):
+	current_user = request.user
+	user = User.objects.get(username = current_user.username)
+	profile = Profile.objects.get(user = user)
+
+	tzo = pytz.timezone(request.user.profile.location.iso_name)
+
+	start = datetime.now(tzo)
+	end = last_day_of_month(datetime.now(tzo))
+
+	if 'start' in request.GET and request.GET['start']:
+		start = request.GET['start']
+		if len(start) < 16:
+			start += "T00:00:00"
+		start = tzo.localize(datetime.strptime(start, '%Y-%m-%dT%H:%M:%S'))
+
+
+	if 'end' in request.GET and request.GET['end']:
+		end = request.GET['end']
+		if len(end) < 16:
+			end+= "T00:00:00"
+		end = tzo.localize(datetime.strptime(end, '%Y-%m-%dT%H:%M:%S'))
+
+	exceptions = Shift_Exception.objects.filter(approved=True)
+	exceptions = exceptions.filter(start_date_time__gte=start)
+	exceptions = exceptions.filter(end_date_time__lt=end)
+
+	schedule = []
+	events = {}
+
+	for e in exceptions:
+		date_e = e.start_date_time.astimezone(tzo).strftime("%Y-%m-%d")
+		event_user = e.event.name + " " + e.user.user.first_name + " " + e.user.user.last_name
+		ev = {"title": event_user, "start":e.start_date_time.astimezone(tzo).strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.astimezone(tzo).strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk}
+
+		if not(events.has_key(date_e)):
+			events[date_e] = []
+		events[date_e].append(ev)
+
+	while start < end:
+		start_query = start
+		start_format = start.astimezone(tzo).strftime("%Y-%m-%d")
+		end_query = start_query + timedelta(days=1)
+
+		if start_format in events:
+			for e in events[start_format]:
+				schedule.append(e)
 
 		start = start + timedelta(days=1)
 
@@ -264,6 +380,7 @@ def getTeamShifts(request):
 					schedule.append(e)
 
 			sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__range = (start_query, end_query)) |  Q(end_date_time__range = (start_query, end_query)) )
+			#sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__range = (start_query, end_query))  )
 			for sh1 in sh_f:
 				start_d = sh1.start_date_time.astimezone(tz)
 				end_d = sh1.end_date_time.astimezone(tz)
@@ -271,7 +388,7 @@ def getTeamShifts(request):
 				if start_d.date() < start.date():
 					start_d = start.replace(hour=0, minute=0)
 				if end_d.date() > start.date():
-					end_d = start.replace(hour=23, minute=59)
+					end_d = end_d.replace(hour=0, minute=0)
 
 				schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift", "id":sh1.pk, "resourceId": str(profile.user.pk), "color":"#008288", "textColor":"#fff"})
 
@@ -495,6 +612,143 @@ def add_event(request, ev=False):
 		messages['Your request has been submitted'] = "green"
 
 	return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list,"messages":messages})
+
+@login_required
+def add_request_manager(request, ev=False):
+
+	messages = {}
+	tz = pytz.timezone(request.user.profile.location.iso_name)
+	cuser = request.user
+	agents = []
+
+	agents_obj = User.objects.filter(groups__name='Agent').order_by('first_name')
+
+	for agent in agents_obj:
+		temp = {}
+		temp['name'] = agent.first_name + " " + agent.last_name
+		temp['id'] = agent.profile.id
+		agents.append(temp)
+
+	events = ""
+	if not ev:
+		events = Event.objects.all()
+	else:
+		events = Event.objects.filter(group__name = str(ev))
+	event_list = {}
+	for e in events:
+		event_list[e.pk] = e.name
+
+	if request.POST:
+
+		eve = ''
+		from_date = ''
+		to_date = ''
+		from_time = ''
+		to_time = ''
+		notes = ''
+		agent = ''
+
+		if len(request.POST['agent']) < 1:
+			message['Please select an agent'] = 'red'
+		else:
+			agent = request.POST['agent']
+
+		if len(request.POST['event']) < 1:
+			messages['Please select an activity'] = "red"
+		else:
+			eve = request.POST['event']
+
+		if len(request.POST['from']) < 1:
+			messages['Please select a start date'] = "red"
+		else:
+			from_date = request.POST['from']
+
+		if len(request.POST['to']) < 1:
+			messages['Please select an end date'] = "red"
+		else:
+			to_date = request.POST['to']
+
+		if len(request.POST['from_time']) < 1:
+			messages['Please select a start time'] = "red"
+		else:
+			from_time = request.POST['from_time']
+
+		if len(request.POST['to_time']) < 1:
+			messages['Please select an end time'] = "red"
+		else:
+			to_time = request.POST['to_time']
+
+		if len(request.POST['notes']) < 1:
+			messages['Please provide a note'] = "red"
+		else:
+			notes = request.POST['notes']
+
+		form_data = {'agent': agent,
+			"event": eve,
+			"from": from_date,
+			"from_time": from_time,
+			"to": to_date,
+			"to_time": to_time,
+			"notes": notes,
+			}
+
+		if len(messages) > 0:
+			return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents":agent})
+
+		from_dt = datetime.strptime(from_date + " " + from_time, '%d %B, %Y %I:%M%p')
+		from_dt = tz.localize(from_dt)
+
+		to_dt = datetime.strptime(to_date + " " + to_time, '%d %B, %Y %I:%M%p')
+		to_dt = tz.localize(to_dt)
+
+		profile = Profile.objects.get(pk = agent)
+
+		total_time = to_dt - from_dt
+		total_days = total_time.days
+
+		if total_days > 1 and ev == "Overtime":
+			m = "You can not request OT for {0} days".format(total_days)
+			messages[m] = "red"
+			return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
+		elif total_time.total_seconds() <= 0:
+
+			m = "Please check you dates, these seem to be invalid"
+			messages[m] = "red"
+			return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
+
+		sh_f = ''
+		s_diff = 0
+		e_diff = to_dt - from_dt
+
+		try:
+			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)[0]
+		except:
+			sh_f = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
+			sh_f.save()
+
+		eve_obj = Event.objects.get(pk = eve)
+
+		event_obj = Shift_Exception(user = profile, shift_sequence = sh_f, event = eve_obj, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, approved=True, actioned_by = cuser, status = 1 )
+
+		event_obj.save()
+
+		l_t = Log_Type.objects.get(name = "Add_Event")
+		log_info = {"user": str(profile), "shift_sequence": str(sh_f), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
+		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()
+
+		n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
+		n.save()
+
+		l_t = Log_Type.objects.get(name = "Add_Event_Note")
+		log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
+		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+		l.save()
+
+		messages['Your request has been submitted'] = "green"
+	print(agents)
+	return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list,"messages":messages,"agents":agents})
+
 
 @login_required
 def review_requests(request):

@@ -1,19 +1,19 @@
 {% extends 'site/base.html' %}
 
 {% block title %}My Schedule{% endblock %}
-   
+
     {% block head_css_section %}
         {% load static %}
         <link href="{% static "shifts/fullcalendar.min.css" %}" rel='stylesheet' />
         <link href="{% static "shifts/scheduler.min.css" %}" rel='stylesheet' />
-        <link href="{% static "shifts/fullcalendar.print.min.css" %}" rel='stylesheet' media="print" />    
+        <link href="{% static "shifts/fullcalendar.print.min.css" %}" rel='stylesheet' media="print" />
     {% endblock head_css_section %}
 
     {% block head_css_page %}
         <style>
 
         body {
-            
+
             padding: 0;
             font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
             font-size: 14px;
@@ -28,17 +28,18 @@
 
 {% block head_js %}
     {% load static %}
-    <script src="{% static "shifts/lib/moment.min.js" %}"></script>   
+    <script src="{% static "shifts/lib/moment.min.js" %}"></script>
     <script src="{% static "shifts/fullcalendar.min.js" %}"></script>
     <script src="{% static "shifts/scheduler.min.js" %}"></script>
 
     <script>
 
 	   $(document).ready(function() {
+       $('select').material_select();
 		$('#calendar').fullCalendar({
             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
-            height: 700,
-            contentHeight: 700,
+            height: 400,
+            contentHeight: 400,
             header: {
 				left: 'prev',
 				center: 'title',
@@ -53,7 +54,7 @@
                     displayEventTime: true,
                 },
             },
-            defaultView: 'agendaDay',
+            defaultView: 'listDay',
 			//defaultDate: '2017-09-12',
 			editable: false,
 			eventLimit: true, // allow "more" link when too many events
@@ -81,8 +82,8 @@
 
             }
 		});
-        
-		
+
+
 	});
 
     </script>
@@ -90,12 +91,39 @@
 {% block pagetitle %}Agent Dashboard{% endblock pagetitle %}
 
 {% block content %}
-<div class="container">
+<div class="">
     <div class="row">
 
       <div class="col s5">
           <!-- My Schedule -->
-        <div id='calendar'></div>
+          <div class="row">
+            <div id='calendar' class="col s12"></div>
+          </div>
+          <div class="row">
+            <div id="states" class="input-field col s12">
+              <select id="agentState" name="agentState">
+  							<option value="" disabled selected>Choose a state</option>
+  							<option value="resume">Ready</option>
+  							<option value="Wrapup Time">Wrapup Time</option>
+  							<option value="Break">Break</option>
+  							<option value="Lunch">Lunch</option>
+  							<option value="Personal">Personal</option>
+  							<option value="Email">Email</option>
+  							<option value="Meeting">Meeting</option>
+  							<option value="Outbound Call">Outbound Call</option>
+  							<option value="Chat">Chat</option>
+  							<option value="Coaching">Coaching</option>
+  							<option value="Training">Training</option>
+  							<option value="Aux 1">Aux 1</option>
+  							<option value="Aux 2">Aux 2</option>
+  							<option value="Aux 3">Aux 3</option>
+  							<option value="login">Log In</option>
+  							<option value="logout">Log Out</option>
+  						</select>
+  						<label>Agent State</label>
+            </div>
+          </div>
+
       </div>
 
       <div class="col s7">
@@ -104,7 +132,7 @@
                 {% autoescape off %}
                 {{ stats }}
               {% endautoescape %}
-              
+
           </div>
           <div class="row" id="stat2">
                 {% autoescape off %}
@@ -116,4 +144,3 @@
     </div>
 </div>
 {% endblock content %}
-    

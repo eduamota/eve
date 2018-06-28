@@ -17,6 +17,8 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.shortcuts import render, redirect
 
+roles = {"supervisor": False, "agent": False, "clientadmin": False, "teamlead": False, "wfmadmin": False}
+
 @login_required()
 def change_password(request):
     if request.method == 'POST':
@@ -35,9 +37,17 @@ def change_password(request):
     })
 
 def home_page(request):
-
-
-	return render(request, 'site/dashboard.html')
+    group = request.user.groups.values_list('name', flat=True)
+    for g in group:
+        #print(str(g).lower())
+        if str(g).lower() == 'admin':
+            for r, v in roles.items():
+                roles[r] = True
+            break
+        if str(g).lower() in roles:
+            roles[str(g).lower()] = True
+    #print(roles)
+    return render(request, 'site/dashboard.html', {"roles": roles,})
 
 def agent_dashboard(request):
 	req =	 requests.get("http://10.5.225.93/jasperserver/rest_v2/reports/Personal_Stats/Agent_Contact_Stats.html?Start_Date=2018-01-11&End_Date=2018-01-17&LoggedInUserEmailAddress=lgarcia@hyperwallet.com", auth=('emota','L!$e)&abby12'))

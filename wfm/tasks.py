@@ -289,8 +289,8 @@ def calculateSLA(sDate, eDate):
 	Precondition: SLA based on the previous existing shifts
 	Postcodnition: SLA recalculated after new shifts have been saved
 	'''
-
-
+	#print("Starting SLA calculation")
+	#print(sDate)
 	start = sDate.date()
 	end = eDate.date()
 
@@ -323,6 +323,10 @@ def calculateSLA(sDate, eDate):
 			else:
 				ski.append(sk_f)
 
+		if len(ski) == 0:
+			print(user_profile)
+			continue
+
 		ratio = 1.0/(len(ski)*1.0)
 
 		for sk in ski:
@@ -333,7 +337,7 @@ def calculateSLA(sDate, eDate):
 			start_d_f = start_d.strftime("%Y-%m-%d %H:%M:%S")
 			end_d_f = end_d - timedelta(minutes=15)
 			end_d_f = end_d_f.strftime("%Y-%m-%d %H:%M:%S")
-
+			#print(ratio)
 			cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` + %s)  WHERE `date` >= %s and `date` <= %s and queue = %s", (ratio, start_d_f,  end_d_f, sk) )
 
 			for ex in ex_list:
@@ -343,7 +347,7 @@ def calculateSLA(sDate, eDate):
 				cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` - %s)  WHERE `date` >= %s and `date` <= %s and queue = %s", (ratio, start_d_f,  end_d_f, sk) )
 
 	cur.close()
-
+@background(schedule=1)
 def runsaveBreaks():
 
 	st = Job_Status.objects.get(name="Queued")
@@ -387,6 +391,7 @@ def runsaveBreaks():
 			log_info = {"id": str(jb.id), "status": str(jb.status)}
 			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
 			l.save()
+
 		except:
 			jb.status = stf
 			jb.save()
@@ -396,7 +401,6 @@ def runsaveBreaks():
 			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
 			l.save()
 
-	calculateSLA(sDate, eDate)
 
 def saveMeetings(sDate, eDate, cUser, aUser, parameters):
 
@@ -477,6 +481,7 @@ def saveMeetings(sDate, eDate, cUser, aUser, parameters):
 	l.save()
 
 	cur.close()
+	calculateSLA(sDate, eDate)
 
 def saveBreaks(sDate, eDate, cUser, aUser):
 	#print("Running adding break and lunches")
@@ -501,7 +506,7 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 	#print("evaluate each shift")
 	i = 1
 	for s in shifts:
-		print(i)
+		#print(i)
 		i += 1
 		#print("get skills")
 		user_profile = s.user
@@ -542,10 +547,10 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 
 		b_time_start = business_day + timedelta(minutes=210)
 		b_time_end = business_day + timedelta(minutes=300)
-		print(bestTimeBreak1)
+		#print(bestTimeBreak1)
 
 		duration = 30
-
+		bestTimeLunch = None
 		bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, profile)
 
 
@@ -555,7 +560,7 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		duration = 15
 
 		bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, profile)
-		print(bestTimeBreak2)
+		#print(bestTimeBreak2)
 
 		ev_b = Event.objects.get(name="Break")
 		ev_l = Event.objects.get(name="Lunch")
@@ -574,6 +579,7 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 			s_ex.save()
 		except Exception as e:
 			print(e)
+			print("Break 1 Time")
 
 		try:
 
@@ -583,17 +589,19 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 			l.save()
 		except Exception as e:
 			print(e)
+			print("Log break 1 time")
 
 		#print("break 2 to be saved")
 		try:
 			bestTimeBreak2_end = bestTimeBreak2 + timedelta(minutes=15)
 			start_dif = (business_day - bestTimeBreak2).days
 			end_dif = (business_day - bestTimeBreak2_end).days
-			print(business_day, bestTimeBreak2)
+			#print(business_day, bestTimeBreak2)
 			s_ex_2 = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak2, start_diff = start_dif, end_date_time = bestTimeBreak2_end, end_diff = end_dif, actioned_by = auser, status = 1)
 			s_ex_2.save()
 		except Exception as e:
 			print(e)
+			print("Break 2 time")
 		#print("break 2 saved")
 		try:
 			l_t = Log_Type.objects.get(name = "Add_Shift_Exception")
@@ -602,14 +610,21 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 			l.save()
 		except Exception as e:
 			print(e)
+			print("Log break 2 time")
 
 		#print("lunch to be saved")
-		bestTimeLunch_end = bestTimeLunch + timedelta(minutes=30)
-		start_dif = (business_day - bestTimeLunch).days
-		end_dif = (business_day - bestTimeLunch_end).days
-		s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, status = 1)
-		s_ex_l.save()
-		#print("lunch saved")
+		try:
+			bestTimeLunch_end = bestTimeLunch + timedelta(minutes=30)
+
+			start_dif = (business_day - bestTimeLunch).days
+			end_dif = (business_day - bestTimeLunch_end).days
+
+			s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, status = 1)
+			s_ex_l.save()
+		except Exception as e:
+			print(e)
+			print("Lunch time")
+
 		try:
 			l_t = Log_Type.objects.get(name = "Add_Shift_Exception")
 			log_info = {"user": str(profile), "shift_sequence": str(s), "event": str(ev_b), "start_date_time": str(bestTimeBreak1), "start_diff": str(start_dif), "end_date_time": str(bestTimeBreak1_end), "end_diff": str(end_dif), "actioned_by": str(auser.profile), "status": str(1)}
@@ -617,8 +632,14 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 			l.save()
 		except Exception as e:
 			print(e)
-		#print("breaks all saved")
+			print("Log Lunch time")
+	#print("breaks all saved")
 	cur.close()
+	try:
+		calculateSLA(sDate, eDate)
+	except Exception as e:
+		print(e)
+		print("calculation of SLA")
 
 def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, pro, override=False):
 	c = connection.cursor()
@@ -628,15 +649,15 @@ def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, pro, ov
 	b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
 
 	b_time_end_format = b_time_end + timedelta(minutes = (duration-15))
-	b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")
+	b_time_end_format = b_time_end_format.strftime("%Y-%m-%d %H:%M:%S")
 
 	intervals = duration / 15
 
 	diff = {}
 
 	for sk in ski:
-		#c.execute("SELECT `date`, (agents_required - actual_agents_scheduled) as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
-		c.execute("SELECT `date`, actual_agents_scheduled as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		c.execute("SELECT `date`, (agents_required - actual_agents_scheduled) as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		#c.execute("SELECT `date`, actual_agents_scheduled as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
 		results = c.fetchall()
 
 		for r in results:
@@ -653,28 +674,30 @@ def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, pro, ov
 				m = 15 * i
 				date_in = r[0] + timedelta(minutes=m)
 				date_in = pytz.utc.localize(date_in)
-
-				s_e = Shift_Exception.objects.filter(start_date_time__lte = date_in).filter(end_date_time__gte = date_out).filter(user=pro)
-
+				s_e = None
+				try:
+					s_e = Shift_Exception.objects.filter(start_date_time__lte = date_in).filter(end_date_time__gte = date_out).filter(user=pro)
+				except:
+					s_e = None
 				if len(s_e) > 0:
-
+					#remove interval if there is an exception already
 					if date_out in diff:
 						del diff[date_out]
 				elif date_in in diff:
+					#add number of agents scheduled
 					total = total + float(r[1])
-
 				else:
 					if date_out in diff:
 						del diff[date_out]
 				i += 1
-
+			#add the number of agents to the interval
 			if date_out in diff:
 				diff[date_out] = diff[date_out] + total
 
 	besttime = ""
 	lowestAgents = -1
 	for k, value in diff.items():
-		if value < lowestAgents or lowestAgents == -1:
+		if value > lowestAgents:
 			lowestAgents = value
 			besttime = k
 	#print(besttime)
