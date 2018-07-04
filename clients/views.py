@@ -7,7 +7,7 @@ from django.views.generic.edit import CreateView, UpdateView
 from .forms import ClientForm, AddComment
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
-# Create your views here.
+from django.contrib.auth.decorators import user_passes_test
 
 
 class ClientCreate(CreateView):
@@ -18,7 +18,7 @@ class ClientUpdate(UpdateView):
 	model = Client
 	fields = ['name']
 
-@login_required
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def clientInfo(request, pk = 0):
 	if request.method == "GET":
 		if pk > 0:
@@ -69,7 +69,7 @@ def clientInfo(request, pk = 0):
 
 		return render(request, 'clients/default.html', {'form': form, 'form2': form2})
 
-
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def contactCostCalculator(request, action = None, param = None):
 
 	if action == "channel" and request.method == "GET":

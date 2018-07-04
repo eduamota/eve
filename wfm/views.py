@@ -13,6 +13,8 @@ import pytz
 from .tasks import runsaveShift, runsaveBreaks, runsaveShiftBreaks, runsaveMeetings
 import json
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import user_passes_test
+
 
 request_actions = {"../request/Timeoff":"Request Time Off",
 			"../request/Overtime":"Request Overtime",
@@ -23,12 +25,12 @@ def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
 	return next_month - timedelta(days=next_month.day)
 
-@login_required
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin',]).exists())
 def schedule_job(request):
 	'''
 
 	'''
-	agents = User.objects.filter(groups__name = 'Agent')
+	agents = User.objects.filter(groups__name = 'Agent').filter(is_active=True)
 	agent_list = {0:"All"}
 
 	tz = pytz.timezone(request.user.profile.location.iso_name)
@@ -110,29 +112,34 @@ def set_timezone(request):
 		return render(request, 'wfm/tz.html', {'timezones': pytz.common_timezones})
 
 # Create your views here.
-@login_required
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'Agent']).exists())
 def calendar(request):
 	return render(request, 'wfm/default.html', {"actions":request_actions,})
 
-@login_required
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def calendar_team(request):
 	return render(request, 'wfm/calendar_team.html', {"actions": request_actions,})
 
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def calendar_manage(request):
 	return render(request, 'wfm/calendar_manage.html', {"actions":request_actions,})
 
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def events(request, sDate = False, eDate = False):
 	schedule = getShifts(request)
 	return JsonResponse(schedule, safe=False)
 
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def team_events(request, sDate = False, eDate = False):
 	schedule = getTeamShifts(request)
 	return JsonResponse(schedule, safe=False)
 
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def manage_events(request, sDate = False, eDate = False):
 	schedule = getAllShifts(request)
 	return JsonResponse(schedule, safe=False)
 
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def manage_exceptions(request, sDate = False, eDate = False):
 	schedule = getAllExceptions(request)
 	return JsonResponse(schedule, safe=False)
@@ -164,7 +171,7 @@ def getShifts(request):
 	exceptions = exceptions.filter(approved=True)
 	exceptions = exceptions.filter(start_date_time__gte=start)
 	exceptions = exceptions.filter(end_date_time__lt=end)
-
+	#print(exceptions.query)
 	schedule = []
 	events = {}
 
@@ -490,12 +497,12 @@ def addAgent(request):
 	c.close()
 	return render(request, "wfm/add_user.html", {'agent_list':agents, 'skills':sks, 'locations': lo, 'groups': group_list})
 
-@login_required
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'Agent']).exists())
 def add_event(request, ev=False):
 
 	messages = {}
 	tz = pytz.timezone(request.user.profile.location.iso_name)
-	cuser = request.user.profile
+	cuser = request.user
 
 	events = ""
 	if not ev:
@@ -562,7 +569,7 @@ def add_event(request, ev=False):
 		to_dt = datetime.strptime(to_date + " " + to_time, '%d %B, %Y %I:%M%p')
 		to_dt = tz.localize(to_dt)
 
-		profile = Profile.objects.get(user = request.user)
+		profile = request.user.profile
 
 		total_time = to_dt - from_dt
 		total_days = total_time.days
@@ -572,7 +579,6 @@ def add_event(request, ev=False):
 			messages[m] = "red"
 			return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data})
 		elif total_time.total_seconds() <= 0:
-
 			m = "Please check you dates, these seem to be invalid"
 			messages[m] = "red"
 			return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data})
@@ -582,38 +588,43 @@ def add_event(request, ev=False):
 		e_diff = to_dt - from_dt
 
 		try:
-			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)[0]
+			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)
 		except:
-			sh_f = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
-			sh_f.save()
-
+			if ev == "Overtime":
+				sh_f = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
+				sh_f.save()
+			else:
+				m = "There is no shifts for this date range"
+				messages[m] = "red"
+				return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
 
 
 		eve_obj = Event.objects.get(pk = eve)
 
+		for sh in sh_f:
+			s_diff = 0
+			e_diff = sh.end_date_time - sh.start_date_time
+			event_obj = Shift_Exception(user = profile, shift_sequence = sh, event = eve_obj, start_date_time = sh.start_date_time, start_diff = s_diff, end_date_time = sh.end_date_time, end_diff = e_diff.days, approved=False, actioned_by = cuser, status = 0 )
+			event_obj.save()
 
-		event_obj = Shift_Exception(user = profile, shift_sequence = sh_f, event = eve_obj, start_date_time = from_dt, start_diff = s_diff.days, end_date_time = to_dt, end_diff = e_diff.days, approved=False, actioned_by = cuser, status = 0 )
+			l_t = Log_Type.objects.get(name = "Add_Event")
+			log_info = {"user": str(profile), "shift_sequence": str(sh), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
+			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 
-		event_obj.save()
+			n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
+			n.save()
 
-		l_t = Log_Type.objects.get(name = "Add_Event")
-		log_info = {"user": str(profile), "shift_sequence": str(sh_f), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff.days), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
-		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-		l.save()
-
-		n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
-		n.save()
-
-		l_t = Log_Type.objects.get(name = "Add_Event_Note")
-		log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
-		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-		l.save()
+			l_t = Log_Type.objects.get(name = "Add_Event_Note")
+			log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
+			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 
 		messages['Your request has been submitted'] = "green"
 
 	return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list,"messages":messages})
 
-@login_required
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def add_request_manager(request, ev=False):
 
 	messages = {}
@@ -621,7 +632,7 @@ def add_request_manager(request, ev=False):
 	cuser = request.user
 	agents = []
 
-	agents_obj = User.objects.filter(groups__name='Agent').order_by('first_name')
+	agents_obj = User.objects.filter(groups__name='Agent').filter(is_active=True).order_by('first_name')
 
 	for agent in agents_obj:
 		temp = {}
@@ -711,7 +722,6 @@ def add_request_manager(request, ev=False):
 			messages[m] = "red"
 			return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
 		elif total_time.total_seconds() <= 0:
-
 			m = "Please check you dates, these seem to be invalid"
 			messages[m] = "red"
 			return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
@@ -721,36 +731,44 @@ def add_request_manager(request, ev=False):
 		e_diff = to_dt - from_dt
 
 		try:
-			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)[0]
+			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)
 		except:
-			sh_f = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
-			sh_f.save()
+			if ev == "Overtime":
+				sh_f = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
+				sh_f.save()
+			else:
+				m = "There is no shifts for this date range"
+				messages[m] = "red"
+				return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
 
 		eve_obj = Event.objects.get(pk = eve)
 
-		event_obj = Shift_Exception(user = profile, shift_sequence = sh_f, event = eve_obj, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, approved=True, actioned_by = cuser, status = 1 )
+		for sh in sh_f:
+			s_diff = 0
+			e_diff = sh.end_date_time - sh.start_date_time
+			event_obj = Shift_Exception(user = profile, shift_sequence = sh, event = eve_obj, start_date_time = sh.start_date_time, start_diff = s_diff, end_date_time = sh.end_date_time, end_diff = e_diff.days, approved=False, actioned_by = cuser, status = 0 )
+			event_obj.save()
 
-		event_obj.save()
+			l_t = Log_Type.objects.get(name = "Add_Event")
+			log_info = {"user": str(profile), "shift_sequence": str(sh), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
+			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 
-		l_t = Log_Type.objects.get(name = "Add_Event")
-		log_info = {"user": str(profile), "shift_sequence": str(sh_f), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
-		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-		l.save()
+			n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
+			n.save()
 
-		n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
-		n.save()
-
-		l_t = Log_Type.objects.get(name = "Add_Event_Note")
-		log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
-		l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-		l.save()
+			l_t = Log_Type.objects.get(name = "Add_Event_Note")
+			log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
+			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+			l.save()
 
 		messages['Your request has been submitted'] = "green"
-	print(agents)
+	#print(agents)
 	return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list,"messages":messages,"agents":agents})
 
 
-@login_required
+
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def review_requests(request):
 	messages = {}
 
@@ -758,7 +776,7 @@ def review_requests(request):
 
 	tz = pytz.timezone(request.user.profile.location.iso_name)
 
-	all_users = Profile.objects.filter(user__groups__name = 'Agent')
+	all_users = Profile.objects.filter(user__groups__name = 'Agent').filter(user__is_active=True)
 
 	status ={"pending":"Pending", "approved":"Approved","rejected":"Rejected"}
 
@@ -808,10 +826,9 @@ def review_requests(request):
 		to_dt = datetime.strptime(to_d, '%d %B, %Y')
 
 		from_dt = tz.localize(from_dt)
-		to_dt = tz.localize(to_dt)
+		to_dt = tz.localize(to_dt) + timedelta(days=1)
 
-		req = Shift_Exception.objects.filter(submitted_time__gte = from_dt).filter(submitted_time__lte = to_dt)
-
+		req = Shift_Exception.objects.filter(submitted_time__gte = from_dt.astimezone(pytz.UTC)).filter(submitted_time__lte = to_dt.astimezone(pytz.UTC)).exclude(event__group__name = 'Break')
 
 		if len(agent_id) > 0:
 			req = req.filter(user__id = agent_id)
@@ -841,28 +858,27 @@ def review_requests(request):
 			else:
 				values.append("Rejected")
 
-			values.append(r.submitted_time)
+			values.append(r.submitted_time.astimezone(tz).strftime('%x %X'))
 			values.append(r.actioned_by.first_name + " " + r.actioned_by.last_name)
 
-			values.append(r.start_date_time)
-			values.append(r.end_date_time)
-
+			values.append(r.start_date_time.astimezone(tz).strftime('%x %X'))
+			values.append(r.end_date_time.astimezone(tz).strftime('%x %X'))
 			all_notes = []
 
 			try:
 				notes = Shift_Exception_Note.objects.filter(shift_exception = r).order_by('-created_time')
 
 				for n in notes:
-					all_notes.append(datetime.strftime(n.created_time, "%c") + " by " + n.created_by.user.first_name + " " + n.created_by.user.last_name + ": " + n.note)
+					all_notes.append(datetime.strftime(n.created_time.astimezone(tz), "%c") + " by " + n.created_by.user.first_name + " " + n.created_by.user.last_name + ": " + n.note)
 
 				if len(notes) == 0:
 					all_notes.append("No Notes")
 
 			except Exception as e:
-				print(e)
+				#print(e)
 				all_notes.append("No Notes")
 
-
+			#print(values)
 			results.append({'id': r.pk, 'values': values, 'notes': all_notes})
 		#print req.query
 		#print len(req)

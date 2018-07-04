@@ -11,6 +11,7 @@ except ImportError: # Python 2
 from django.db import connection
 import json
 from django.views.decorators.clickjacking import xframe_options_exempt
+from django.contrib.auth.decorators import user_passes_test
 
 # Create your views here.
 class MethodRequest(Request):
@@ -47,6 +48,7 @@ def callAPI(met, url, data = False):
 
 
 @xframe_options_exempt
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def agents(request, agentid = False):
 	agents = callAPI("GET", 'https://api-hw.voxter.com:8443/v1/accounts/{accountID}/users');
 	agentData = agents['data']
@@ -123,6 +125,7 @@ def agents(request, agentid = False):
 	return render(request, "phone/agents.html", {"agentList":agentList,"queues":agentQueues, "noQueues":notQueue, "agentid": agentid, "messages":messages})
 
 @xframe_options_exempt
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def queues(request, queueid = False):
 	agents = callAPI("GET", 'https://api-hw.voxter.com:8443/v1/accounts/{accountID}/queues');
 	queueData = agents['data']

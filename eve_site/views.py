@@ -16,8 +16,60 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import user_passes_test
+from django.db import connection
+import datetime
+import json
+try:
+	from urllib.parse import urlencode
+	from urllib.request import urlopen, Request
+except ImportError: # Python 2
+	from urllib import urlencode
+	from urllib2 import urlopen, Request
 
-roles = {"supervisor": False, "agent": False, "clientadmin": False, "teamlead": False, "wfmadmin": False}
+roles = {"supervisor": False, "agent": False, "clientadmin": False, "teamlead": False, "wfmadmin": False, "qa": False}
+
+# Create your views here.
+class MethodRequest(Request):
+  def __init__(self, *args, **kwargs):
+	self._method = kwargs.pop('method', None)
+	Request.__init__(self, *args, **kwargs)
+
+  def get_method(self):
+	return self._method if self._method else super(RequestWithMethod, self).get_method()
+
+from django import template
+from django.contrib.auth.models import Group
+
+register = template.Library()
+
+@register.filter(name='has_group')
+def has_group(user, group_name):
+    group = Group.objects.get(name=group_name)
+    return True if group in user.groups.all() else False
+
+def callAPI(met, url, data = False):
+
+	c = connection.cursor()
+
+	c.execute("SELECT account_id, value_text from ops_system.crd where System = 'Voxter'")
+	authToken = c.fetchone()
+	account_id = authToken[0]
+	authToken = authToken[1]
+
+	url = url.replace("{accountID}", account_id)
+
+	req = MethodRequest(url, method=met)
+	req.add_header('Content-Type', 'application/json')
+	req.add_header('X-Auth-Token', authToken)
+	r = {}
+	if met == "POST" and data:
+		dataDic = {'data':data, "verb":"POST"}
+		r = urlopen(req, json.dumps(dataDic))
+	else:
+		r = urlopen(req)
+	c.close()
+	return json.loads(str(r.read()))
 
 @login_required()
 def change_password(request):
@@ -37,6 +89,8 @@ def change_password(request):
     })
 
 def home_page(request):
+    for r, v in roles.items():
+        roles[r] = False
     group = request.user.groups.values_list('name', flat=True)
     for g in group:
         #print(str(g).lower())
@@ -142,3 +196,97 @@ def globe_dashboard(request, timep = "current"):
 
 def tm_dashboard(request):
 	return render(request, 'site/tm_dashboard.html')
+
+def getAgentStats(request):
+	#with connection.cursor() as c:
+	#	c.execute("SELECT ")
+    email = request.user.email
+    response = {'calls':0, 'aht': "0:00", 'awt': "0:00", 'chats':0, "act": "0:00", "emails": 0}
+    query = "select v.Agent_ID from ops_system.voxter_user v where v.email = '{}'".format(email,)
+    query2 = "select state, a.Pause_Event, avg(duration), count(duration) from ops_system.agent_status a where a.agent_id = '{}' and a.Start_Time >= date(NOW()) group by state, a.Pause_Event"
+    data = None
+
+    with connection.cursor() as c:
+        c.execute(query)
+        agent_id = c.fetchall()
+        c.execute(query2.format(agent_id[0][0]))
+        data = c.fetchall()
+
+    if data:
+        response = {}
+        for row in data:
+            if row[0] == 'connected':
+                response['calls'] = row[3]
+                response['aht'] = str(datetime.timedelta(seconds=int(row[2])))
+            elif row[1] == 'Wrapup time':
+                response['awt'] = str(datetime.timedelta(seconds=int(row[2])))
+
+    return JsonResponse(response)
+
+def getAgentContacts(request):
+
+    email = request.user.email
+
+    query = "select v.Agent_ID from ops_system.voxter_user v where v.email = '{}'".format(email,)
+    query2 = "select state, caller_id, duration, a.Pause_Event, a.Start_Time from ops_system.agent_status a where a.agent_id = '{}' and a.Start_Time >= date(NOW()) and state != 'Wrapup' order by id desc"
+    data = None
+
+    response = [{"callerid": "Loading...", "duration": "Loading...", "state": "Loading..."},]
+
+    with connection.cursor() as c:
+        c.execute(query)
+        agent_id = c.fetchall()
+        c.execute(query2.format(agent_id[0][0]))
+        data = c.fetchall()
+
+    if data:
+        response = []
+        for row in data:
+            tmp = {}
+            tmp['state'] = row[0].capitalize()
+            if row[3]:
+                tmp['state'] = tmp['state'] + " " + row[3]
+            tmp['callerid'] = row[1]
+            dur = None
+            if row[2]:
+                dur = str(datetime.timedelta(seconds=row[2]))
+            else:
+                dur = (datetime.datetime.now() - row[4]).total_seconds()
+                dur = str(datetime.timedelta(seconds=int(dur)))
+            tmp['duration'] = dur
+            response.append(tmp)
+
+    return JsonResponse(response, safe=False)
+
+def change_agent_state(request, state="resume"):
+
+    status = state
+
+    email = request.user.email
+
+    query = "select v.Agent_ID from ops_system.voxter_user v where v.email = '{}'".format(email,)
+    agent_id = None
+
+    messages = {"status:": "Failed"}
+
+    with connection.cursor() as c:
+        c.execute(query)
+        agent_id = c.fetchall()
+
+    agentid = agent_id[0][0]
+
+    url = "https://api-hw.voxter.com:8443/v1/accounts/{accountID}/agents/" + agentid + "/status"
+
+    if "login" in status or "logout" in status or "resume" in status:
+        data = {"status": status}
+    else:
+        data = {"status":"pause", "alias": status}
+    results = callAPI("POST", url, data)
+
+    if results['status'] == "success":
+        messages = {"status": "Success status changed to " + status}
+    else:
+        messages = {"status": "Error unable to set status to " + status}
+
+
+    return JsonResponse(messages, safe=False)

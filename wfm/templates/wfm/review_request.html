@@ -73,6 +73,7 @@
                     success: function(result) {
                         // Do something with the result
                         Materialize.toast("The note has been saved", 4000, 'green');
+                        $('#search-requests').submit();
                     }
                 });
                 
@@ -89,7 +90,7 @@
 
     <div class="container">
         
-        <form method="post" action="">
+        <form method="post" action="" id="search-requests">
             {% csrf_token %}
             <div class="blockPinned">
   
@@ -131,11 +132,11 @@
             <div class="row">
                 <div class="input-field col s3">
                     <input id="from" name="from" type="text" class="datepicker">
-                    <label for="from">From</label>
+                    <label for="from">Request submitted from date</label>
                 </div>
                 <div class="input-field col s3">
                     <input id="to" name="to" type="text" class="datepicker">
-                    <label for="to">To</label>
+                    <label for="to">Request submitted to date</label>
                 </div>
             
             </div>
@@ -246,6 +247,16 @@
                 clear: 'Clear',
                 close: 'Ok',
                 closeOnSelect: true, // Close upon selecting a date,
+                onSet: function(ev){
+                    var $inputF = $('#from').pickadate();
+                    var pickerF = $inputF.pickadate('picker');
+                    
+                    var $input = $('#to').pickadate();
+                    var picker = $input.pickadate('picker');
+                    
+                    
+                    picker.set('select', pickerF.get(), {format: 'd mmmm, yyyy'});
+                },
               });
             
             $('#to').pickadate({

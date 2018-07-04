@@ -1,14 +1,14 @@
 {% extends 'site/base.html' %}
 
 {% block title %}Dashboard{% endblock %}
-   
+
     {% block head_css_section %}
     {% endblock head_css_section %}
 
     {% block head_css_page %}
         <style>
              .error {color: #FF0000;}
-             
+
              .pinned {width: 70%; padding-left: 80px}
         </style>
     {% endblock head_css_page %}
@@ -78,6 +78,7 @@
                         {% if roles.agent %}<a href="/wfm/request/">Requests</a>{% endif %}
                         {% if roles.supervisor or roles.teamlead %}<a href="wfm/manager/request/">Request on behalf of agent</a>{% endif %}
                         {% if roles.supervisor or roles.teamlead %}<a href="/wfm/review/requests">Review Requests</a>{% endif %}
+                        {% if roles.agent %}<a href="/wfm/review/requests">Review Requests</a>{% endif %}
                     </div>
                 </div>
             </div>
@@ -106,4 +107,3 @@
     {% endif %}
 </div>
 {% endblock content %}
-    

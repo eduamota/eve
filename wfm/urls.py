@@ -11,7 +11,6 @@ urlpatterns = [
 	url(r'^manage_exceptions/$', views.manage_exceptions),
 	url(r'^resources/$', views.getResources),
 	url(r'^events/$', views.events),
-	url(r'^user/add$', views.addAgent),
 	url(r'^schedule_job/$', views.schedule_job),
 	url(r'^settz/$', views.set_timezone),
 	url(r'^request/(?P<ev>[a-zA-Z]+)$', views.add_event),
