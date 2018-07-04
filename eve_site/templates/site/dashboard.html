@@ -14,8 +14,9 @@
     {% endblock head_css_page %}
 
 {% block content %}
+{% load app_filters %}
 <div class="container">
-    {% if roles.supervisor or roles.teamlead %}
+    {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}
     <div class="row">
         <div class="col s12">
             <div class="card horizontal">
@@ -38,7 +39,7 @@
         </div>
     </div>
     {% endif %}
-    {% if roles.supervisor or roles.teamlead %}
+    {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}
     <div class="row">
         <div class="col s12">
             <div class="card horizontal">
@@ -72,19 +73,19 @@
                         <p>Workforce Management</p>
                     </div>
                     <div class="card-action">
-                        {% if roles.agent %}<a href="/wfm/calendar">My Schedule</a>{% endif %}
-                        {% if roles.supervisor or roles.teamlead %}<a href="/wfm/calendar/team">Team Schedule</a>{% endif %}
-                        {% if roles.supervisor or roles.teamlead %}<a href="/wfm/calendar/manage">Team Management View</a>{% endif %}
-                        {% if roles.agent %}<a href="/wfm/request/">Requests</a>{% endif %}
-                        {% if roles.supervisor or roles.teamlead %}<a href="wfm/manager/request/">Request on behalf of agent</a>{% endif %}
-                        {% if roles.supervisor or roles.teamlead %}<a href="/wfm/review/requests">Review Requests</a>{% endif %}
-                        {% if roles.agent %}<a href="/wfm/review/requests">Review Requests</a>{% endif %}
+                        {% if request.user|has_group:"Agent" or request.user|has_group:"Admin"%}<a href="/wfm/calendar">My Schedule</a>{% endif %}
+                        {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/wfm/calendar/team">Team Schedule</a>{% endif %}
+                        {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/wfm/calendar/manage">Team Management View</a>{% endif %}
+                        {% if request.user|has_group:"Agent" or request.user|has_group:"Admin"%}<a href="/wfm/request/">Requests</a>{% endif %}
+                        {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="wfm/manager/request/">Request on behalf of agent</a>{% endif %}
+                        {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/wfm/review/requests">Review Requests</a>{% endif %}
+                        {% if request.user|has_group:"Agent" or request.user|has_group:"Admin"%}<a href="/wfm/review/requests">Review Requests</a>{% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    {% if roles.clientadmin %}
+    {% if request.user|has_group:"ClientAdmin" or request.user|has_group:"Admin" %}
     <div class="row">
         <div class="col s12">
             <div class="card horizontal">

@@ -60,7 +60,11 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                
             ],
+            'libraries':{
+                'app_filters': 'eve_site.templatetags.app_filters',
+            }
         },
     },
 ]

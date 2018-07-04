@@ -27,7 +27,6 @@ except ImportError: # Python 2
 	from urllib import urlencode
 	from urllib2 import urlopen, Request
 
-roles = {"supervisor": False, "agent": False, "clientadmin": False, "teamlead": False, "wfmadmin": False, "qa": False}
 
 # Create your views here.
 class MethodRequest(Request):
@@ -38,15 +37,6 @@ class MethodRequest(Request):
   def get_method(self):
 	return self._method if self._method else super(RequestWithMethod, self).get_method()
 
-from django import template
-from django.contrib.auth.models import Group
-
-register = template.Library()
-
-@register.filter(name='has_group')
-def has_group(user, group_name):
-    group = Group.objects.get(name=group_name)
-    return True if group in user.groups.all() else False
 
 def callAPI(met, url, data = False):
 
@@ -89,19 +79,8 @@ def change_password(request):
     })
 
 def home_page(request):
-    for r, v in roles.items():
-        roles[r] = False
-    group = request.user.groups.values_list('name', flat=True)
-    for g in group:
-        #print(str(g).lower())
-        if str(g).lower() == 'admin':
-            for r, v in roles.items():
-                roles[r] = True
-            break
-        if str(g).lower() in roles:
-            roles[str(g).lower()] = True
     #print(roles)
-    return render(request, 'site/dashboard.html', {"roles": roles,})
+    return render(request, 'site/dashboard.html')
 
 def agent_dashboard(request):
 	req =	 requests.get("http://10.5.225.93/jasperserver/rest_v2/reports/Personal_Stats/Agent_Contact_Stats.html?Start_Date=2018-01-11&End_Date=2018-01-17&LoggedInUserEmailAddress=lgarcia@hyperwallet.com", auth=('emota','L!$e)&abby12'))
