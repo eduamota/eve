@@ -7,7 +7,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '1i^nrwl-^3o1+lhdir*a!6@-h9o7p$nq1u+53pe@!&e&hhkhdm'
+SECRET_KEY = '%WN(rAdK+YvfAji3XZco0Q3oSV_k)Tjddq!!zX(GcJ51nLWssf'
 
 # Application definition
 
@@ -60,7 +60,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                
+
             ],
             'libraries':{
                 'app_filters': 'eve_site.templatetags.app_filters',
@@ -90,6 +90,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_REDIRECT_URL = 'home_page'
+LOGOUT_REDIRECT_URL = 'home_page'
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/

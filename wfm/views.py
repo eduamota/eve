@@ -56,7 +56,7 @@ def schedule_job(request):
 		start_date = tz.localize(start_date)
 
 		end_date = datetime.strptime(end_date[0], '%d %B, %Y')
-		end_date = tz.localize(end_date)
+		end_date = tz.localize(end_date) + timedelta(days=1)
 
 		st = Job_Status.objects.get(name="Queued")
 
@@ -124,7 +124,6 @@ def calendar_team(request):
 def calendar_manage(request):
 	return render(request, 'wfm/calendar_manage.html', {"actions":request_actions,})
 
-@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def events(request, sDate = False, eDate = False):
 	schedule = getShifts(request)
 	return JsonResponse(schedule, safe=False)
@@ -132,6 +131,11 @@ def events(request, sDate = False, eDate = False):
 @user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
 def team_events(request, sDate = False, eDate = False):
 	schedule = getTeamShifts(request)
+	return JsonResponse(schedule, safe=False)
+
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
+def general_team_events(request, sDate = False, eDate = False):
+	schedule = getGeneralTeamShifts(request)
 	return JsonResponse(schedule, safe=False)
 
 @user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
@@ -405,6 +409,81 @@ def getTeamShifts(request):
 
 	return schedule
 
+def getGeneralResources(request):
+
+	all_agents = Profile.objects.filter(user__groups__name = 'Agent')
+	schedule = []
+	#resource_cc = {}
+	#resource_cc['id'] = "CC"
+	#resource_cc['title'] = "Contact Center"
+	#schedule.append(resource_cc)
+	for ag in all_agents:
+		resource_cc = {}
+		resource_cc['id'] = str(ag.user.pk)
+		resource_cc['title'] = ag.user.first_name + " " + ag.user.last_name
+		schedule.append(resource_cc)
+
+	return JsonResponse(schedule, safe=False)
+
+def getGeneralTeamShifts(request):
+	all_users = Profile.objects.filter(user__groups__name = 'Agent')
+
+	schedule = []
+
+	tz = pytz.timezone(request.user.profile.location.iso_name)
+
+	for profile in all_users:
+
+		start = date.today()
+		end = last_day_of_month(date.today())
+
+		if 'start' in request.GET and request.GET['start']:
+			start = request.GET['start'][:10]
+			start = tz.localize(datetime.strptime(start, '%Y-%m-%d'))
+
+
+		if 'end' in request.GET and request.GET['end']:
+			end = request.GET['end'][:10]
+			end = tz.localize(datetime.strptime(end, '%Y-%m-%d'))
+
+		exceptions = Shift_Exception.objects.filter(user=profile).exclude(event__group__name = 'Overtime').filter(approved=True).filter(start_date_time__gte=start).filter(end_date_time__lte=end)
+
+		events = {}
+
+		for e in exceptions:
+			date_e = e.start_date_time.astimezone(tz).strftime("%Y-%m-%d")
+			ev = {"title": "Unavailable", "start":e.start_date_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), "color":"#a9abad", "textColor":"#000", "id":e.pk, "resourceId": str(profile.user.pk)}
+
+			if not(events.has_key(date_e)):
+				events[date_e] = []
+			events[date_e].append(ev)
+
+		while start < end:
+			start_query = start
+			start_format = start.strftime("%Y-%m-%d")
+			end_query = start_query + timedelta(days=1)
+			end_query = end_query
+
+			if start_format in events:
+				for e in events[start_format]:
+					schedule.append(e)
+
+			sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__range = (start_query, end_query)) |  Q(end_date_time__range = (start_query, end_query)) )
+			#sh_f = Shift_Sequence.objects.filter(Q(user= profile), Q(start_date_time__range = (start_query, end_query))  )
+			for sh1 in sh_f:
+				start_d = sh1.start_date_time.astimezone(tz)
+				end_d = sh1.end_date_time.astimezone(tz)
+
+				if start_d.date() < start.date():
+					start_d = start.replace(hour=0, minute=0)
+				if end_d.date() > start.date():
+					end_d = end_d.replace(hour=0, minute=0)
+
+				schedule.append({"start": start_d.strftime("%Y-%m-%d %H:%M:%S"), "end": end_d.strftime("%Y-%m-%d %H:%M:%S"), "title":"Shift", "id":sh1.pk, "resourceId": str(profile.user.pk), "color":"#008288", "textColor":"#fff"})
+
+			start = start + timedelta(days=1)
+	return schedule
+
 def addAgent(request):
 	c = connection.cursor()
 
@@ -506,7 +585,7 @@ def add_event(request, ev=False):
 
 	events = ""
 	if not ev:
-		events = Event.objects.all()
+		events = Event.objects.exclude(group__name = 'Break')
 	else:
 		events = Event.objects.filter(group__name = str(ev))
 	event_list = {}
@@ -521,6 +600,7 @@ def add_event(request, ev=False):
 		from_time = ''
 		to_time = ''
 		notes = ''
+		all_day = request.POST['all_day']
 
 		if len(request.POST['event']) < 1:
 			messages['Please select an activity'] = "red"
@@ -537,13 +617,17 @@ def add_event(request, ev=False):
 		else:
 			to_date = request.POST['to']
 
-		if len(request.POST['from_time']) < 1:
-			messages['Please select a start time'] = "red"
+		if len(request.POST['from_time']) < 1 and request.POST['all_day'] == "No":
+			messages['Please select a start time or set the all day dropdown to Yes'] = "red"
+		elif request.POST['all_day'] == "Yes":
+			from_time = '12:00AM'
 		else:
 			from_time = request.POST['from_time']
 
-		if len(request.POST['to_time']) < 1:
-			messages['Please select an end time'] = "red"
+		if len(request.POST['to_time']) < 1 and request.POST['all_day'] == "No":
+			messages['Please select an end timeor set the all day dropdown to Yes'] = "red"
+		elif request.POST['all_day'] == "Yes":
+			to_time = '11:59PM'
 		else:
 			to_time = request.POST['to_time']
 
@@ -552,7 +636,9 @@ def add_event(request, ev=False):
 		else:
 			notes = request.POST['notes']
 
-		form_data = {"event": eve,
+		form_data = {
+			"event": eve,
+			"all_day": all_day,
 			"from": from_date,
 			"from_time": from_time,
 			"to": to_date,
@@ -569,12 +655,17 @@ def add_event(request, ev=False):
 		to_dt = datetime.strptime(to_date + " " + to_time, '%d %B, %Y %I:%M%p')
 		to_dt = tz.localize(to_dt)
 
-		profile = request.user.profile
+		profile = cuser.profile
 
 		total_time = to_dt - from_dt
 		total_days = total_time.days
 
-		if total_days > 1 and ev == "Overtime":
+		eve_obj = Event.objects.get(pk = eve)
+		print(to_dt)
+		print(from_dt)
+		ev = eve_obj.name
+
+		if total_days > 1 and "Overtime" in ev:
 			m = "You can not request OT for {0} days".format(total_days)
 			messages[m] = "red"
 			return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data})
@@ -587,41 +678,128 @@ def add_event(request, ev=False):
 		s_diff = 0
 		e_diff = to_dt - from_dt
 
-		try:
-			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)
-		except:
-			if ev == "Overtime":
-				sh_f = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
-				sh_f.save()
-			else:
-				m = "There is no shifts for this date range"
-				messages[m] = "red"
-				return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
+		future_request = False
 
+		try:
+			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__year = to_dt.year).filter(start_date_time__month = to_dt.month)
+			if len(sh_f) == 0:
+				future_request = True
+			print("Not in the future")
+		except:
+			future_request = True
+
+		no_valid_shift = False
+		if not future_request:
+			try:
+				sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__gte = from_dt).filter(end_date_time__lte = to_dt)
+				print("found shift")
+				print(sh_f)
+				if len(sh_f) == 0:
+					no_valid_shift = True
+			except:
+				no_valid_shift = True
+
+			if no_valid_shift:
+				if "Overtime" in ev:
+					sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = from_dt).filter(end_date_time__gte = to_dt)
+				else:
+					m = "There is no shifts for this date range"
+					messages[m] = "red"
+					return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data})
 
 		eve_obj = Event.objects.get(pk = eve)
 
-		for sh in sh_f:
-			s_diff = 0
-			e_diff = sh.end_date_time - sh.start_date_time
-			event_obj = Shift_Exception(user = profile, shift_sequence = sh, event = eve_obj, start_date_time = sh.start_date_time, start_diff = s_diff, end_date_time = sh.end_date_time, end_diff = e_diff.days, approved=False, actioned_by = cuser, status = 0 )
-			event_obj.save()
+		if not future_request:
+			if "Overtime" in ev and len(sh_f) == 0:
+				cu_from_dt = from_dt.astimezone(pytz.UTC)
+				cu_to_dt = to_dt.astimezone(pytz.UTC)
+				event_obj = Shift_Exception(user = profile, shift_sequence = None, event = eve_obj, start_date_time = cu_from_dt, start_diff = 0, end_date_time = cu_to_dt, end_diff = 0, approved=False, actioned_by = cuser, status = 0 )
+				event_obj.save()
 
-			l_t = Log_Type.objects.get(name = "Add_Event")
-			log_info = {"user": str(profile), "shift_sequence": str(sh), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
-			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
+				l_t = Log_Type.objects.get(name = "Add_Event")
+				log_info = {"user": str(profile), "shift_sequence": None, "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(0), "end_date_time": str(to_dt), "end_diff": str(0)}
+				l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
 
-			n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
-			n.save()
+				n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
+				n.save()
 
-			l_t = Log_Type.objects.get(name = "Add_Event_Note")
-			log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
-			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
+				l_t = Log_Type.objects.get(name = "Add_Event_Note")
+				log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
+				l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
+			else:
+				for sh in sh_f:
+					s_diff = 0
+					e_diff = sh.end_date_time - sh.start_date_time
+
+					cu_from_dt = from_dt.astimezone(pytz.UTC)
+					cu_to_dt = to_dt.astimezone(pytz.UTC)
+
+					#print(cu_from_dt)
+					#print(cu_to_dt)
+					#print(sh.start_date_time)
+					#print(sh.end_date_time)
+
+					if sh.start_date_time < cu_from_dt and cu_to_dt > sh.end_date_time and all_day == "Yes":
+						continue
+
+					if sh.end_date_time > cu_to_dt and cu_from_dt < sh.start_date_time and all_day == "Yes":
+						continue
+
+					if cu_from_dt < sh.start_date_time:
+						cu_from_dt = sh.start_date_time
+
+					if cu_to_dt > sh.end_date_time:
+						cu_to_dt = sh.end_date_time
+
+					#print(cu_from_dt)
+					#print(cu_to_dt)
+					#print(sh.start_date_time)
+					#print(sh.end_date_time)
+
+
+					event_obj = Shift_Exception(user = profile, shift_sequence = sh, event = eve_obj, start_date_time = cu_from_dt, start_diff = s_diff, end_date_time = cu_to_dt, end_diff = e_diff.days, approved=False, actioned_by = cuser, status = 0 )
+					event_obj.save()
+
+					l_t = Log_Type.objects.get(name = "Add_Event")
+					log_info = {"user": str(profile), "shift_sequence": str(sh), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
+					l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+					l.save()
+
+					n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
+					n.save()
+
+					l_t = Log_Type.objects.get(name = "Add_Event_Note")
+					log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
+					l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+					l.save()
+		else:
+			from_dt = from_dt.replace(hour = 8, minute = 0, second = 0)
+			to_dt = to_dt.replace(hour = 4, minute = 30, second = 0)
+			while s_diff <= e_diff.days:
+				tmp_from_dt =  from_dt + timedelta(days = s_diff)
+				tmp_to_dt = to_dt + timedelta(days = s_diff)
+				event_obj = Shift_Exception(user = profile, event = eve_obj, start_date_time = tmp_from_dt, start_diff = 0, end_date_time = tmp_to_dt, end_diff = 0, approved=False, actioned_by = cuser, status = 0 )
+				event_obj.save()
+
+				s_diff += 1
+
+				l_t = Log_Type.objects.get(name = "Add_Event")
+				log_info = {"user": str(profile), "shift_sequence": str("Future request"), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
+				l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
+
+				n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
+				n.save()
+
+				l_t = Log_Type.objects.get(name = "Add_Event_Note")
+				log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
+				l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
 
 		messages['Your request has been submitted'] = "green"
-
+	#print(agents)
 	return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list,"messages":messages})
 
 @user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
@@ -658,6 +836,7 @@ def add_request_manager(request, ev=False):
 		to_time = ''
 		notes = ''
 		agent = ''
+		all_day = request.POST['all_day']
 
 		if len(request.POST['agent']) < 1:
 			message['Please select an agent'] = 'red'
@@ -679,13 +858,17 @@ def add_request_manager(request, ev=False):
 		else:
 			to_date = request.POST['to']
 
-		if len(request.POST['from_time']) < 1:
-			messages['Please select a start time'] = "red"
+		if len(request.POST['from_time']) < 1 and request.POST['all_day'] == "No":
+			messages['Please select a start time or set the all day dropdown to Yes'] = "red"
+		elif request.POST['all_day'] == "Yes":
+			from_time = '12:00AM'
 		else:
 			from_time = request.POST['from_time']
 
-		if len(request.POST['to_time']) < 1:
-			messages['Please select an end time'] = "red"
+		if len(request.POST['to_time']) < 1 and request.POST['all_day'] == "No":
+			messages['Please select an end timeor set the all day dropdown to Yes'] = "red"
+		elif request.POST['all_day'] == "Yes":
+			to_time = '11:59PM'
 		else:
 			to_time = request.POST['to_time']
 
@@ -696,6 +879,7 @@ def add_request_manager(request, ev=False):
 
 		form_data = {'agent': agent,
 			"event": eve,
+			"all_day": all_day,
 			"from": from_date,
 			"from_time": from_time,
 			"to": to_date,
@@ -717,7 +901,12 @@ def add_request_manager(request, ev=False):
 		total_time = to_dt - from_dt
 		total_days = total_time.days
 
-		if total_days > 1 and ev == "Overtime":
+		eve_obj = Event.objects.get(pk = eve)
+		print(to_dt)
+		print(from_dt)
+		ev = eve_obj.name
+
+		if total_days > 1 and "Overtime" in ev:
 			m = "You can not request OT for {0} days".format(total_days)
 			messages[m] = "red"
 			return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
@@ -730,37 +919,122 @@ def add_request_manager(request, ev=False):
 		s_diff = 0
 		e_diff = to_dt - from_dt
 
+		future_request = False
+
 		try:
-			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)
+			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__year = to_dt.year).filter(start_date_time__month = to_dt.month)
+			if len(sh_f) == 0:
+				future_request = True
+			print("Not in the future")
 		except:
-			if ev == "Overtime":
-				sh_f = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
-				sh_f.save()
-			else:
-				m = "There is no shifts for this date range"
-				messages[m] = "red"
-				return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
+			future_request = True
+
+		no_valid_shift = False
+		if not future_request:
+			try:
+				sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__gte = from_dt).filter(end_date_time__lte = to_dt)
+				print(sh_f.query)
+				if len(sh_f) == 0:
+					no_valid_shift = True
+			except:
+				no_valid_shift = True
+
+			if no_valid_shift:
+				if "Overtime" in ev:
+					sf_f_s = Shift_Sequence.objects.filter(user = profile).filter(start_date_time = to_dt)
+					if len(sf_f_s) > 0:
+						sf_f_s[0].start_date_time = from_dt
+						sf_f_s[0].save()
+
+					sf_f_e = Shift_Sequence.objects.filter(user = profile).filter(end_date_time = from_dt)
+					if len(sf_f_e) > 0:
+						sf_f_e[0].end_date_time = to_dt
+						sf_f_e[0].save()
+
+					sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = from_dt).filter(end_date_time__gte = to_dt)
+
+					if len(sh_f) == 0:
+						sh_f_n = Shift_Sequence(user = profile, start_date_time = from_dt, start_diff = s_diff, end_date_time = to_dt, end_diff = e_diff.days, actioned_by = cuser)
+						sh_f_n.save()
+						print("new shift")
+						print(sh_f)
+						sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = to_dt).filter(end_date_time__gte = from_dt)
+				else:
+					m = "There is no shifts for this date range"
+					messages[m] = "red"
+					return render(request, 'wfm/management_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data, "agents": agents})
 
 		eve_obj = Event.objects.get(pk = eve)
 
-		for sh in sh_f:
-			s_diff = 0
-			e_diff = sh.end_date_time - sh.start_date_time
-			event_obj = Shift_Exception(user = profile, shift_sequence = sh, event = eve_obj, start_date_time = sh.start_date_time, start_diff = s_diff, end_date_time = sh.end_date_time, end_diff = e_diff.days, approved=False, actioned_by = cuser, status = 0 )
-			event_obj.save()
+		if not future_request:
+			for sh in sh_f:
+				s_diff = 0
+				e_diff = sh.end_date_time - sh.start_date_time
 
-			l_t = Log_Type.objects.get(name = "Add_Event")
-			log_info = {"user": str(profile), "shift_sequence": str(sh), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
-			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
+				cu_from_dt = from_dt.astimezone(pytz.UTC)
+				cu_to_dt = to_dt.astimezone(pytz.UTC)
 
-			n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
-			n.save()
+				#print(cu_from_dt)
+				#print(cu_to_dt)
+				#print(sh.start_date_time)
+				#print(sh.end_date_time)
 
-			l_t = Log_Type.objects.get(name = "Add_Event_Note")
-			log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
-			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
+				if sh.start_date_time < cu_from_dt and cu_to_dt > sh.end_date_time and all_day == "Yes":
+					continue
+
+				if sh.end_date_time > cu_to_dt and cu_from_dt < sh.start_date_time and all_day == "Yes":
+					continue
+
+				if cu_from_dt < sh.start_date_time:
+					cu_from_dt = sh.start_date_time
+
+				if cu_to_dt > sh.end_date_time:
+					cu_to_dt = sh.end_date_time
+
+				#print(cu_from_dt)
+				#print(cu_to_dt)
+				#print(sh.start_date_time)
+				#print(sh.end_date_time)
+
+
+				event_obj = Shift_Exception(user = profile, shift_sequence = sh, event = eve_obj, start_date_time = cu_from_dt, start_diff = s_diff, end_date_time = cu_to_dt, end_diff = e_diff.days, approved=True, actioned_by = cuser, status = 1 )
+				event_obj.save()
+
+				l_t = Log_Type.objects.get(name = "Add_Event")
+				log_info = {"user": str(profile), "shift_sequence": str(sh), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
+				l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
+
+				n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
+				n.save()
+
+				l_t = Log_Type.objects.get(name = "Add_Event_Note")
+				log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
+				l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
+		else:
+			from_dt = from_dt.replace(hour = 8, minute = 0, second = 0)
+			to_dt = to_dt.replace(hour = 4, minute = 30, second = 0)
+			while s_diff <= e_diff.days:
+				tmp_from_dt =  from_dt + timedelta(days = s_diff)
+				tmp_to_dt = to_dt + timedelta(days = s_diff)
+				event_obj = Shift_Exception(user = profile, event = eve_obj, start_date_time = tmp_from_dt, start_diff = 0, end_date_time = tmp_to_dt, end_diff = 0, approved=True, actioned_by = cuser, status = 1 )
+				event_obj.save()
+
+				s_diff += 1
+
+				l_t = Log_Type.objects.get(name = "Add_Event")
+				log_info = {"user": str(profile), "shift_sequence": str("Future request"), "event": str(eve_obj), "start_date_time": str(from_dt), "start_diff": str(s_diff), "end_date_time": str(to_dt), "end_diff": str(e_diff.days)}
+				l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
+
+				n = Shift_Exception_Note(shift_exception = event_obj, note = notes, created_by = profile)
+				n.save()
+
+				l_t = Log_Type.objects.get(name = "Add_Event_Note")
+				log_info = {"shift_exception": str(event_obj), "note": str(notes), "created_by": str(profile)}
+				l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
 
 		messages['Your request has been submitted'] = "green"
 	#print(agents)
@@ -778,7 +1052,7 @@ def review_requests(request):
 
 	all_users = Profile.objects.filter(user__groups__name = 'Agent').filter(user__is_active=True)
 
-	status ={"pending":"Pending", "approved":"Approved","rejected":"Rejected"}
+	status ={"pending":"Pending", "approved":"Approved","rejected":"Rejected","deleted":"Deleted"}
 
 	agents = {}
 
@@ -813,22 +1087,160 @@ def review_requests(request):
 		form_data['from'] = from_d
 		form_data['to'] = to_d
 
+		start_date = False
+		end_date = False
+
 		if len(from_d) < 1:
-			messages['Please indicate a date to start the search from'] = 'red'
+			start_date = True
 
 		if len(to_d) < 1:
-			messages['Please indicate a date to finish the search'] = 'red'
+			end_Date = False
 
 		if len(messages) > 0:
 			return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "fields": form_data, "profile":user_profile.pk})
 
-		from_dt = datetime.strptime(from_d, '%d %B, %Y')
-		to_dt = datetime.strptime(to_d, '%d %B, %Y')
+		req = None
+		if start_date and end_date:
+			from_dt = datetime.strptime(from_d, '%d %B, %Y')
+			to_dt = datetime.strptime(to_d, '%d %B, %Y')
 
-		from_dt = tz.localize(from_dt)
-		to_dt = tz.localize(to_dt) + timedelta(days=1)
+			from_dt = tz.localize(from_dt)
+			to_dt = tz.localize(to_dt) + timedelta(days=1)
 
-		req = Shift_Exception.objects.filter(submitted_time__gte = from_dt.astimezone(pytz.UTC)).filter(submitted_time__lte = to_dt.astimezone(pytz.UTC)).exclude(event__group__name = 'Break')
+			req = Shift_Exception.objects.filter(submitted_time__gte = from_dt.astimezone(pytz.UTC)).filter(submitted_time__lte = to_dt.astimezone(pytz.UTC)).exclude(event__group__name = 'Break').order_by('-submitted_time', 'start_date_time')
+
+		else:
+			req = Shift_Exception.objects.exclude(event__group__name = 'Break').order_by('-submitted_time', 'start_date_time')
+
+		if len(agent_id) > 0:
+			req = req.filter(user__id = agent_id)
+
+		if len(st_status) > 0:
+			if st_status == "pending":
+				req = req.filter(status = 0)
+			elif st_status == "approved":
+				req = req.filter(status = 1)
+			elif st_status == "deleted":
+				req = req.filter(status = 3)
+			else:
+				req = req.filter(status = 2)
+
+		if len(st_type) > 0:
+			req = req.filter(event__group__name = st_type)
+
+		req = req[:20]
+		results = []
+		for r in req:
+			values = []
+			values.append(r.pk)
+			values.append(r.event)
+			values.append(r.user)
+
+			if r.status == 0:
+				values.append("Pending")
+			elif r.status == 1:
+				values.append("Approved")
+			elif r.status == 2:
+				values.append("Rejected")
+			else:
+				values.append("Deleted")
+
+			values.append(r.submitted_time.astimezone(tz).strftime('%x %X'))
+			values.append(r.actioned_by.first_name + " " + r.actioned_by.last_name)
+
+			values.append(r.start_date_time.astimezone(tz).strftime('%x %X'))
+			values.append(r.end_date_time.astimezone(tz).strftime('%x %X'))
+			all_notes = []
+
+			try:
+				notes = Shift_Exception_Note.objects.filter(shift_exception = r).order_by('-created_time')
+
+				for n in notes:
+					all_notes.append(datetime.strftime(n.created_time.astimezone(tz), "%c") + " by " + n.created_by.user.first_name + " " + n.created_by.user.last_name + ": " + n.note)
+
+				if len(notes) == 0:
+					all_notes.append("No Notes")
+
+			except Exception as e:
+				#print(e)
+				all_notes.append("No Notes")
+
+			#print(values)
+			results.append({'id': r.pk, 'values': values, 'notes': all_notes})
+		#print req.query
+		#print len(req)
+		#print results
+		return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "results": results, "fields": form_data, "profile":user_profile.pk})
+
+	return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "profile":user_profile.pk})
+
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'Agent']).exists())
+def review_requests_agent(request):
+	messages = {}
+
+	user_profile = Profile.objects.get(user = request.user)
+
+	tz = pytz.timezone(request.user.profile.location.iso_name)
+
+
+	status ={"pending":"Pending", "approved":"Approved","rejected":"Rejected"}
+
+	agents = {}
+
+	r_type = {"Meeting":"Meeting","Timeoff":"Timeoff","Overtime":"Overtime"}
+
+	agents[request.user.profile.pk] = request.user.first_name + " " + request.user.last_name
+
+	if request.POST:
+
+		agent_id = ""
+		st_type = ""
+		st_status = ""
+
+		form_data = {}
+
+		if 'agent_id' in request.POST:
+			agent_id = request.POST['agent_id']
+			form_data['agent_id'] = agent_id
+
+		if 'type' in request.POST:
+			st_type = request.POST['type']
+			form_data['type'] = st_type
+
+		if 'status' in request.POST:
+			st_status = request.POST['status']
+			form_data['status'] = st_status
+
+		from_d = request.POST['from']
+		to_d = request.POST['to']
+
+		form_data['from'] = from_d
+		form_data['to'] = to_d
+
+		start_date = False
+		end_date = False
+
+		if len(from_d) < 1:
+			start_date = True
+
+		if len(to_d) < 1:
+			end_Date = False
+
+		if len(messages) > 0:
+			return render(request, 'wfm/review_request_agent.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "fields": form_data, "profile":user_profile.pk})
+
+		req = None
+		if start_date and end_date:
+			from_dt = datetime.strptime(from_d, '%d %B, %Y')
+			to_dt = datetime.strptime(to_d, '%d %B, %Y')
+
+			from_dt = tz.localize(from_dt)
+			to_dt = tz.localize(to_dt) + timedelta(days=1)
+
+			req = Shift_Exception.objects.filter(submitted_time__gte = from_dt.astimezone(pytz.UTC)).filter(submitted_time__lte = to_dt.astimezone(pytz.UTC)).exclude(event__group__name = 'Break').order_by('-submitted_time', 'start_date_time')
+
+		else:
+			req = Shift_Exception.objects.exclude(event__group__name = 'Break').order_by('-submitted_time', 'start_date_time')
 
 		if len(agent_id) > 0:
 			req = req.filter(user__id = agent_id)
@@ -843,7 +1255,8 @@ def review_requests(request):
 
 		if len(st_type) > 0:
 			req = req.filter(event__group__name = st_type)
-
+		#print(req.query)
+		req = req[:20]
 		results = []
 		for r in req:
 			values = []
@@ -883,9 +1296,10 @@ def review_requests(request):
 		#print req.query
 		#print len(req)
 		#print results
-		return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "results": results, "fields": form_data, "profile":user_profile.pk})
+		return render(request, 'wfm/review_request_agent.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "results": results, "fields": form_data, "profile":user_profile.pk})
 
-	return render(request, 'wfm/review_request.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "profile":user_profile.pk})
+	return render(request, 'wfm/review_request_agent.html', {"actions": request_actions, "messages":messages, "agents":agents, "type":r_type, "status":status, "profile":user_profile.pk})
+
 
 def agentBoard(request):
 	return render(request, 'wfm/agent.html', {"actions":request_actions,})
@@ -934,7 +1348,8 @@ def changeException(request):
 			delta_days = end - start
 			ev.end_diff = delta_days.days
 			ev.save()
-			return JsonResponse({'Status':"OK", 'data':t + " Sucessfully Changed For " + agent.first_name}, safe=False)
+			data_info = t + " Sucessfully Changed For " + str(agent.first_name)
+			return JsonResponse({'Status':"OK", 'data': data_info}, safe=False)
 	return JsonResponse({'Status':"Failed",}, safe=False)
 
 @csrf_exempt
@@ -983,3 +1398,138 @@ def addEvent(request):
 			ev.save()
 			return JsonResponse({'Status':"OK", 'data':t + " Sucessfully Changed For " + agent.first_name}, safe=False)
 	return JsonResponse({'Status':"Failed",}, safe=False)
+
+@user_passes_test(lambda u: u.groups.filter(name__in=['Admin', 'QA', 'TeamLead', 'Supervisor']).exists())
+def scheduleOneonOne(request):
+	#lock from 11 to 19
+	notifications = {}
+	weeks = []
+
+	for i in range(0,4):
+		today = datetime.now() + timedelta(days=(i*7))
+		start = today - timedelta(days=today.weekday())
+		end = start + timedelta(days=6)
+		value = start.strftime('%d/%b/%Y') + " - " + end.strftime('%d/%b/%Y')
+		key = start.strftime('%d/%b/%Y')
+		week = {'date': key, 'week': value}
+		weeks.append(week)
+
+	agent_list = []
+
+	if request.POST:
+		tz = pytz.timezone(request.user.profile.location.iso_name)
+
+		start_week = request.POST['weekSelection']
+
+		if not start_week:
+			return render(request, 'wfm/oneonone.html', {"messages": notifications, "weeks": weeks})
+		from_dt = datetime.strptime(start_week, '%d/%b/%Y')
+		from_dt = tz.localize(from_dt)
+		to_dt = from_dt + timedelta(days=6)
+
+		agents = Profile.objects.filter(team_manager = request.user).order_by('user__first_name', 'user__last_name')
+		#print(len(agents))
+		for agent in agents:
+			a = {'id': agent.id, 'name': agent.user.first_name + " " + agent.user.last_name}
+			skills = agent.skill_level.all()
+			ski = []
+			for sk in skills:
+				sk_f = str(sk)
+
+				if "Phone" in sk_f:
+					sk_f = sk_f.replace(" - Phone","")
+				else:
+					continue
+				sk_f = sk_f.split(" ")
+				sk_f = sk_f[1]
+				if sk_f != "English":
+					ski.insert(0, sk_f)
+				else:
+					ski.append(sk_f)
+
+			if len(ski) > 1 and "English" in ski:
+				ind = ski.index("English")
+				del ski[ind]
+			shifts = Shift_Sequence.objects.filter(user = agent).filter(start_date_time__gte = from_dt).filter(end_date_time__lte = to_dt)
+			slots = []
+			for shift in shifts:
+				slot = findBestTimes(ski, shift.start_date_time, shift.start_date_time, shift.end_date_time, 60, agent)
+				if slot:
+					slot_tmp = []
+					for k, v in slot.items():
+						slot_tmp.append(k.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"))
+					sl_tmp = sorted(slot_tmp)
+					data = {'date': shift.start_date_time.strftime("%Y-%m-%d"), 'slots': sl_tmp}
+					slots.append(data)
+			a['slots'] = slots
+
+			agent_list.append(a)
+	#print(agent_list)
+	return render(request, 'wfm/oneonone.html', {"messages": notifications, "weeks": weeks, "agents": agent_list})
+
+def findBestTimes(ski, b_date_format, b_time_start, b_time_end, duration, pro, override=False):
+	#print("trying to connect")
+	c = connection.cursor()
+	#print("Trying to find time")
+	duration = int(duration)
+
+	b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
+	#print(b_time_start_format)
+	#b_time_end_format = b_time_end - timedelta(minutes = duration)
+	b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")
+	#print(b_time_end_format)
+	intervals = duration / 15
+	#print(intervals)
+	diff = {}
+	#print("finding the best time")
+	for sk in ski:
+		#c.execute("SELECT `date`, (agents_required - actual_agents_scheduled) as d from forecast_call_forecast where `date` >= %s and `date` < %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		c.execute("SELECT `date`, actual_agents_scheduled as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		results = c.fetchall()
+		#print(len(results))
+		for r in results:
+			date_out = pytz.utc.localize(r[0])
+			if date_out not in diff:
+				diff[date_out] = 0
+
+
+		for r in results:
+			i = 1
+			total = 0
+			date_out = pytz.utc.localize(r[0])
+			while i <= intervals:
+				m = 15 * i
+				date_in = r[0] + timedelta(minutes=m)
+				date_in = pytz.utc.localize(date_in)
+				s_e = None
+				try:
+					s_e = Shift_Exception.objects.filter(Q(start_date_time__lte = date_out) & Q(end_date_time__gte = date_in) & Q(user=pro))
+				except:
+					s_e = None
+				if len(s_e) > 0:
+					#remove interval if there is an exception already
+					if date_out in diff:
+						del diff[date_out]
+				elif date_in in diff:
+					#add number of agents scheduled
+					total = total + float(r[1])
+				else:
+					if date_out in diff:
+						del diff[date_out]
+				i += 1
+			#add the number of agents to the interval
+			if date_out in diff:
+				diff[date_out] = diff[date_out] + total
+	#print("slots")
+	#print(diff)
+	besttime = None
+	lowestAgents = None
+	for k, value in diff.items():
+		if value > lowestAgents or not lowestAgents:
+			lowestAgents = value
+			besttime = k
+	#print(besttime)
+	c.close()
+	#tzo = pytz.timezone("UTC")
+	#besttime = tzo.localize(besttime)
+	return diff

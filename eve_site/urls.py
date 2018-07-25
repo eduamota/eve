@@ -35,6 +35,7 @@ router.register(r'shift', apiViews.ShiftViewSet)
 router.register(r'day_model', apiViews.Day_ModelViewSet)
 router.register(r'job', apiViews.JobViewSet)
 router.register(r'job_status', apiViews.Job_StatusViewSet)
+router.register(r'notification', apiViews.NotificationSet)
 
 urlpatterns = [
 	url(r'^api/', include(router.urls)),
@@ -58,6 +59,7 @@ urlpatterns = [
     url(r'^agent/stats/$', views.getAgentStats),
     url(r'^agent/contacts/$', views.getAgentContacts),
 	url(r'^myadmin/', include(admin_site.urls)),
+    url(r'^agent/changeState/(?P<state>[\w \d]+)/$', views.change_agent_state),
 	url(r'^$', views.home_page, name="home_page"),
     url(r'^accounts/password/$', views.change_password, name='change_password'),
 ]

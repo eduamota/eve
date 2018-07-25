@@ -32,7 +32,7 @@
                         <a href="/quality/form/v2/Phone">Create a new phone form</a>
                         <a href="/quality/form/v2/Email">Create a new email form</a>
                         <a href="/quality/form/v2/Chat">Create a new chat form</a>
-                        <a href="/quality/form/search/v2/">Search a form</a>
+                        <a href="/quality/form/v2/search/">Search a form</a>
                     </div>
                 </div>
             </div>
@@ -74,12 +74,13 @@
                     </div>
                     <div class="card-action">
                         {% if request.user|has_group:"Agent" or request.user|has_group:"Admin"%}<a href="/wfm/calendar">My Schedule</a>{% endif %}
+                        {% if request.user|has_group:"Agent" or request.user|has_group:"Admin"%}<a href="/agent/">My Dashboard</a>{% endif %}
                         {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/wfm/calendar/team">Team Schedule</a>{% endif %}
                         {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/wfm/calendar/manage">Team Management View</a>{% endif %}
                         {% if request.user|has_group:"Agent" or request.user|has_group:"Admin"%}<a href="/wfm/request/">Requests</a>{% endif %}
                         {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="wfm/manager/request/">Request on behalf of agent</a>{% endif %}
                         {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/wfm/review/requests">Review Requests</a>{% endif %}
-                        {% if request.user|has_group:"Agent" or request.user|has_group:"Admin"%}<a href="/wfm/review/requests">Review Requests</a>{% endif %}
+                        {% if request.user|has_group:"Agent" or request.user|has_group:"Admin"%}<a href="/wfm/agent/review/requests">Review Requests</a>{% endif %}
                     </div>
                 </div>
             </div>

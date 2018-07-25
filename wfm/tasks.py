@@ -15,6 +15,7 @@ import pytz
 import sys
 import json
 from background_task import background
+from django.db.models import Q
 
 def last_day_of_month(any_day):
 	'''
@@ -206,7 +207,7 @@ def runsaveMeetings():
 
 
 def saveShifts(sDate, eDate, cUser, aUser):
-	#print("saving shifts")
+	print("saving shifts")
 	user = User.objects.get(username = cUser)
 	auser = User.objects.get(username = aUser)
 	profile = Profile.objects.get(user = user)
@@ -216,11 +217,8 @@ def saveShifts(sDate, eDate, cUser, aUser):
 	start = sDate.date()
 	end = eDate.date()
 
-	shifts = Shift.objects.filter(user=profile)
-	shifts = shifts.filter(valid_from__lte=end)
-	shifts = shifts.filter(valid_to__gte=start)
+	shifts = Shift.objects.filter(user=profile).filter(valid_from__lte=end).filter(valid_to__gte=start)
 
-	tzo = pytz.timezone("UTC")
 	for s in shifts:
 		working_days={
 			"Sunday": s.sunday,
@@ -231,6 +229,9 @@ def saveShifts(sDate, eDate, cUser, aUser):
 			"Friday": s.friday,
 			"Saturday": s.saturday,
 		}
+
+		#print(s.day_model.time_zone)
+		tzo = pytz.timezone(s.day_model.time_zone)
 
 		start_date = s.valid_from
 		end_date = s.valid_to
@@ -252,7 +253,8 @@ def saveShifts(sDate, eDate, cUser, aUser):
 			#print(start_format)
 			end_format = start_date + timedelta(days=int(s.day_model.day_end_diff))
 			end_format = end_format.strftime("%Y-%m-%d")
-
+			#print(start_format)
+			#print(end_format)
 			if working_days[dayName]:
 				#print(dayName)
 				try:
@@ -299,17 +301,17 @@ def calculateSLA(sDate, eDate):
 
 
 	shifts = Shift_Sequence.objects.filter(start_date_time__date__gte = start_format).filter(start_date_time__date__lte = end_format)
+	#print(shifts.query)
+	with connection.cursor() as cur:
+		cur.execute("update forecast_call_forecast set actual_agents_scheduled = 0 where date(`date`) >= %s and date(`date`) <= %s", (start_format, end_format))
 
-	cur = connection.cursor()
-	cur.execute("update forecast_call_forecast set actual_agents_scheduled = 0 where date(`date`) >= %s and date(`date`) <= %s", (start_format, end_format))
-
+	#print(len(shifts))
 	for s in shifts:
 		user_profile = s.user
-
 		ex_list = Shift_Exception.objects.filter(shift_sequence = s)
 
 		skills = user_profile.skill_level.all()
-
+		#print(len(ex_list))
 		ski = []
 		for sk in skills:
 			sk_f = sk.skill.name
@@ -324,7 +326,7 @@ def calculateSLA(sDate, eDate):
 				ski.append(sk_f)
 
 		if len(ski) == 0:
-			print(user_profile)
+			#print(user_profile)
 			continue
 
 		ratio = 1.0/(len(ski)*1.0)
@@ -337,16 +339,17 @@ def calculateSLA(sDate, eDate):
 			start_d_f = start_d.strftime("%Y-%m-%d %H:%M:%S")
 			end_d_f = end_d - timedelta(minutes=15)
 			end_d_f = end_d_f.strftime("%Y-%m-%d %H:%M:%S")
-			#print(ratio)
-			cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` + %s)  WHERE `date` >= %s and `date` <= %s and queue = %s", (ratio, start_d_f,  end_d_f, sk) )
+			#print(ratio, sk)
+			with connection.cursor() as cur:
+				cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` + %s)  WHERE `date` >= %s and `date` <= %s and queue = %s", (ratio, start_d_f,  end_d_f, sk) )
 
 			for ex in ex_list:
 				start_d_f = ex.start_date_time.strftime("%Y-%m-%d %H:%M:%S")
 				end_d_f = ex.end_date_time - timedelta(minutes=15)
 				end_d_f = end_d_f.strftime("%Y-%m-%d %H:%M:%S")
-				cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` - %s)  WHERE `date` >= %s and `date` <= %s and queue = %s", (ratio, start_d_f,  end_d_f, sk) )
+				with connection.cursor() as cur:
+					cur.execute("UPDATE `eve`.`forecast_call_forecast` SET `actual_agents_scheduled`= (`actual_agents_scheduled` - %s)  WHERE `date` >= %s and `date` <= %s and queue = %s", (ratio, start_d_f,  end_d_f, sk) )
 
-	cur.close()
 @background(schedule=1)
 def runsaveBreaks():
 
@@ -400,7 +403,6 @@ def runsaveBreaks():
 			log_info = {"id": str(jb.id), "status": str(jb.status)}
 			l = Log(created_by = jb.actioned_by, log_type = l_t, log_info = json.dumps(log_info))
 			l.save()
-
 
 def saveMeetings(sDate, eDate, cUser, aUser, parameters):
 
@@ -503,7 +505,7 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 
 	#print(shifts.query)
 	#print(len(shifts))
-	#print("evaluate each shift")
+	print("evaluate each shift")
 	i = 1
 	for s in shifts:
 		#print(i)
@@ -529,111 +531,201 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 			else:
 				ski.append(sk_f)
 
+		if len(ski) > 1 and "English" in ski:
+			ind = ski.index("English")
+			del ski[ind]
+
 		#print(ski)
 		#print(s)
 
 		business_day = s.start_date_time
+		business_day_end = s.end_date_time
 
 		b_date = business_day.date()
 		b_date_format = b_date.strftime("%Y-%m-%d")
 
-		b_time_start = business_day + timedelta(minutes=30)
-		b_time_end = business_day + timedelta(minutes=150)
-
-
-		duration = 15
-
-		bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, profile)
-
-		b_time_start = business_day + timedelta(minutes=210)
-		b_time_end = business_day + timedelta(minutes=300)
-		#print(bestTimeBreak1)
-
-		duration = 30
+		bestTimeBreak1 = None
+		bestTimeBreak2 = None
 		bestTimeLunch = None
-		bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, profile)
 
+		duration_Break1 = None
+		duration_Break2 = None
+		duration_Lunch = None
 
-		b_time_start = business_day + timedelta(minutes=360)
-		b_time_end = business_day + timedelta(minutes=435)
+		shift_diff = business_day_end - business_day
+		shift_diff_days = shift_diff.total_seconds()/60/60
+		print(shift_diff_days)
+		if shift_diff_days < 3:
+			continue
 
-		duration = 15
+		elif shift_diff_days < 5:
+			b_time_start = business_day + timedelta(minutes=120)
+			b_time_end = business_day_end - timedelta(minutes=90)
+			duration_Break1 = 15
+			bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Break1, profile)
+			print(bestTimeBreak1)
 
-		bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, profile)
-		#print(bestTimeBreak2)
+		elif shift_diff_days < 6:
+			b_time_start = business_day + timedelta(minutes=120)
+			b_time_end = business_day_end - timedelta(minutes=120)
+			duration_Lunch = 30
+			bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Lunch, profile)
+			print(bestTimeLunch)
+
+		elif shift_diff_days < 7:
+			b_time_start = business_day + timedelta(minutes=120)
+			b_time_end = business_day + timedelta(minutes=180)
+			duration_Break1 = 15
+			bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Break1, profile)
+			print(bestTimeBreak1)
+
+			b_time_start = bestTimeBreak1 + timedelta(minutes=75)
+			b_time_end = business_day_end - timedelta(minutes=120)
+			duration_Lunch = 30
+			bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Lunch, profile)
+			print(bestTimeLunch)
+
+		elif shift_diff_days < 10:
+			b_time_start = business_day + timedelta(minutes=90)
+			b_time_end = business_day + timedelta(minutes=150)
+			duration_Break1 = 15
+			bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Break1, profile)
+			print(bestTimeBreak1)
+
+			b_time_start = bestTimeBreak1 + timedelta(minutes=105)
+			b_time_end = business_day + timedelta(minutes=300)
+			duration_Lunch = 30
+			bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Lunch, profile)
+			print(bestTimeLunch)
+
+			b_time_start = bestTimeLunch + timedelta(minutes=120)
+			b_time_end = business_day_end - timedelta(minutes=60)
+			duration_Break2 = 15
+			bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Break2, profile)
+			print(bestTimeBreak2)
+
+		elif shift_diff_days < 11:
+
+			if business_day.hour > 7:
+				print("day")
+				print(business_day)
+				print(business_day_end)
+				duration_Break1 = 15
+				bestTimeBreak1 = business_day + timedelta(minutes=150)
+
+				duration_Lunch = 30
+				bestTimeLunch = business_day + timedelta(minutes=300)
+
+				b_time_start = bestTimeLunch + timedelta(minutes=150)
+				b_time_end = bestTimeLunch + timedelta(minutes=210)
+				duration_Break2 = 15
+
+				bestTimeBreak2 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Break2, profile)
+				print(bestTimeBreak2)
+			else:
+				print("nigth 10 hours")
+				b_time_start = business_day + timedelta(minutes=180)
+				b_time_end = business_day + timedelta(minutes=270)
+				duration_Break1 = 30
+				bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Break1, profile)
+				print(bestTimeBreak1)
+				duration_Lunch = 30
+				bestTimeLunch = bestTimeBreak1 + timedelta(minutes=180)
+
+		elif shift_diff_days <= 12:
+			b_time_start = business_day + timedelta(minutes=90)
+			b_time_end = business_day + timedelta(minutes=150)
+			duration_Break1 = 15
+			bestTimeBreak1 = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Break1, profile)
+			print(bestTimeBreak1)
+
+			b_time_start = bestTimeBreak1 + timedelta(minutes=120)
+			b_time_end = bestTimeBreak1 + timedelta(minutes=150)
+			duration_Lunch = 30
+			bestTimeLunch = findBestTime(ski, b_date_format, b_time_start, b_time_end, duration_Lunch, profile)
+			print(bestTimeLunch)
+			duration_Break2 = 30
+			bestTimeBreak2 = bestTimeLunch + timedelta(minutes=210)
 
 		ev_b = Event.objects.get(name="Break")
 		ev_l = Event.objects.get(name="Lunch")
 
 
-		s_ex_del_list = Shift_Exception.objects.filter(shift_sequence = s).filter(user = profile)
+		s_ex_del_list = Shift_Exception.objects.filter(Q(shift_sequence = s) & Q(user = profile) & (Q(event__name = 'Break') | Q(event__name = 'Lunch')))
+
 		for s_ex_1 in s_ex_del_list:
 			s_ex_1.delete()
 
+		if bestTimeBreak1:
+			bestTimeBreak1_end = bestTimeBreak1 + timedelta(minutes=duration_Break1)
+			start_dif = (business_day - bestTimeBreak1).days
+			end_dif = (business_day - bestTimeBreak1_end).days
+	 		try:
+				s_ex = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak1, start_diff = start_dif, end_date_time = bestTimeBreak1_end, end_diff = end_dif, actioned_by = auser, status = 1)
+				s_ex.save()
+				print(s_ex)
+			except Exception as e:
+				print(e)
+				print("Break 1 Time")
 
-		bestTimeBreak1_end = bestTimeBreak1 + timedelta(minutes=15)
-		start_dif = (business_day - bestTimeBreak1).days
-		end_dif = (business_day - bestTimeBreak1_end).days
- 		try:
-			s_ex = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak1, start_diff = start_dif, end_date_time = bestTimeBreak1_end, end_diff = end_dif, actioned_by = auser, status = 1)
-			s_ex.save()
-		except Exception as e:
-			print(e)
-			print("Break 1 Time")
+			try:
+				l_t = Log_Type.objects.get(name = "Add_Shift_Exception")
+				log_info = {"user": str(profile), "shift_sequence": str(s), "event": str(ev_b), "start_date_time": str(bestTimeBreak1), "start_diff": str(start_dif), "end_date_time": str(bestTimeBreak1_end), "end_diff": str(end_dif), "actioned_by": str(auser.profile), "status": str(1)}
+				l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
+			except Exception as e:
+				print(e)
+				print("Log break 1 time")
 
-		try:
+		if bestTimeBreak2:
+			print("break 2 to be saved")
+			try:
+				bestTimeBreak2_end = bestTimeBreak2 + timedelta(minutes=duration_Break2)
+				start_dif = (business_day - bestTimeBreak2).days
+				end_dif = (business_day - bestTimeBreak2_end).days
+				#print(business_day, bestTimeBreak2)
+				s_ex_2 = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak2, start_diff = start_dif, end_date_time = bestTimeBreak2_end, end_diff = end_dif, actioned_by = auser, status = 1)
+				s_ex_2.save()
+				print(s_ex_2)
+			except Exception as e:
+				print(e)
+				print("Break 2 time")
+			print("break 2 saved")
+			try:
+				l_t = Log_Type.objects.get(name = "Add_Shift_Exception")
+				log_info = {"user": str(profile), "shift_sequence": str(s), "event": str(ev_b), "start_date_time": str(bestTimeBreak1), "start_diff": str(start_dif), "end_date_time": str(bestTimeBreak1_end), "end_diff": str(end_dif), "actioned_by": str(auser.profile), "status": str(1)}
+				l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
 
-			l_t = Log_Type.objects.get(name = "Add_Shift_Exception")
-			log_info = {"user": str(profile), "shift_sequence": str(s), "event": str(ev_b), "start_date_time": str(bestTimeBreak1), "start_diff": str(start_dif), "end_date_time": str(bestTimeBreak1_end), "end_diff": str(end_dif), "actioned_by": str(auser.profile), "status": str(1)}
-			l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
-		except Exception as e:
-			print(e)
-			print("Log break 1 time")
+			except Exception as e:
+				print(e)
+				print("Log break 2 time")
 
-		#print("break 2 to be saved")
-		try:
-			bestTimeBreak2_end = bestTimeBreak2 + timedelta(minutes=15)
-			start_dif = (business_day - bestTimeBreak2).days
-			end_dif = (business_day - bestTimeBreak2_end).days
-			#print(business_day, bestTimeBreak2)
-			s_ex_2 = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak2, start_diff = start_dif, end_date_time = bestTimeBreak2_end, end_diff = end_dif, actioned_by = auser, status = 1)
-			s_ex_2.save()
-		except Exception as e:
-			print(e)
-			print("Break 2 time")
-		#print("break 2 saved")
-		try:
-			l_t = Log_Type.objects.get(name = "Add_Shift_Exception")
-			log_info = {"user": str(profile), "shift_sequence": str(s), "event": str(ev_b), "start_date_time": str(bestTimeBreak1), "start_diff": str(start_dif), "end_date_time": str(bestTimeBreak1_end), "end_diff": str(end_dif), "actioned_by": str(auser.profile), "status": str(1)}
-			l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
-		except Exception as e:
-			print(e)
-			print("Log break 2 time")
+		if bestTimeLunch:
+			print("lunch to be saved")
+			try:
+				bestTimeLunch_end = bestTimeLunch + timedelta(minutes=30)
 
-		#print("lunch to be saved")
-		try:
-			bestTimeLunch_end = bestTimeLunch + timedelta(minutes=30)
+				start_dif = (business_day - bestTimeLunch).days
+				end_dif = (business_day - bestTimeLunch_end).days
 
-			start_dif = (business_day - bestTimeLunch).days
-			end_dif = (business_day - bestTimeLunch_end).days
+				s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, status = 1)
+				s_ex_l.save()
+				print(s_ex_l)
+			except Exception as e:
+				print(e)
+				print("Lunch time")
 
-			s_ex_l = Shift_Exception(user = profile, shift_sequence = s, event = ev_l, start_date_time = bestTimeLunch, start_diff = start_dif, end_date_time = bestTimeLunch_end, end_diff = end_dif, actioned_by = auser, status = 1)
-			s_ex_l.save()
-		except Exception as e:
-			print(e)
-			print("Lunch time")
+			try:
+				l_t = Log_Type.objects.get(name = "Add_Shift_Exception")
+				log_info = {"user": str(profile), "shift_sequence": str(s), "event": str(ev_b), "start_date_time": str(bestTimeBreak1), "start_diff": str(start_dif), "end_date_time": str(bestTimeBreak1_end), "end_diff": str(end_dif), "actioned_by": str(auser.profile), "status": str(1)}
+				l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
+				l.save()
+			except Exception as e:
+				print(e)
+				print("Log Lunch time")
 
-		try:
-			l_t = Log_Type.objects.get(name = "Add_Shift_Exception")
-			log_info = {"user": str(profile), "shift_sequence": str(s), "event": str(ev_b), "start_date_time": str(bestTimeBreak1), "start_diff": str(start_dif), "end_date_time": str(bestTimeBreak1_end), "end_diff": str(end_dif), "actioned_by": str(auser.profile), "status": str(1)}
-			l = Log(created_by = auser, log_type = l_t, log_info = json.dumps(log_info))
-			l.save()
-		except Exception as e:
-			print(e)
-			print("Log Lunch time")
-	#print("breaks all saved")
+	print("breaks all saved")
 	cur.close()
 	try:
 		calculateSLA(sDate, eDate)
@@ -642,24 +734,25 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 		print("calculation of SLA")
 
 def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, pro, override=False):
+	print("trying to connect")
 	c = connection.cursor()
-
+	print("Trying to find time")
 	duration = int(duration)
 
 	b_time_start_format = b_time_start.strftime("%Y-%m-%d %H:%M:%S")
-
-	b_time_end_format = b_time_end + timedelta(minutes = (duration-15))
-	b_time_end_format = b_time_end_format.strftime("%Y-%m-%d %H:%M:%S")
-
+	print(b_time_start_format)
+	#b_time_end_format = b_time_end - timedelta(minutes = duration)
+	b_time_end_format = b_time_end.strftime("%Y-%m-%d %H:%M:%S")
+	print(b_time_end_format)
 	intervals = duration / 15
-
+	print(intervals)
 	diff = {}
-
+	print("finding the best time")
 	for sk in ski:
-		c.execute("SELECT `date`, (agents_required - actual_agents_scheduled) as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
-		#c.execute("SELECT `date`, actual_agents_scheduled as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		#c.execute("SELECT `date`, (agents_required - actual_agents_scheduled) as d from forecast_call_forecast where `date` >= %s and `date` < %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		c.execute("SELECT `date`, actual_agents_scheduled as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
 		results = c.fetchall()
-
+		print(len(results))
 		for r in results:
 			date_out = pytz.utc.localize(r[0])
 			if date_out not in diff:
@@ -676,7 +769,7 @@ def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, pro, ov
 				date_in = pytz.utc.localize(date_in)
 				s_e = None
 				try:
-					s_e = Shift_Exception.objects.filter(start_date_time__lte = date_in).filter(end_date_time__gte = date_out).filter(user=pro)
+					s_e = Shift_Exception.objects.filter(Q(start_date_time__lte = date_out) & Q(end_date_time__gte = date_in) & Q(user=pro) & (Q(event__group__name = 'Meeting') | Q(event__group__name = 'Timeoff')))
 				except:
 					s_e = None
 				if len(s_e) > 0:
@@ -693,14 +786,14 @@ def findBestTime(ski, b_date_format, b_time_start, b_time_end, duration, pro, ov
 			#add the number of agents to the interval
 			if date_out in diff:
 				diff[date_out] = diff[date_out] + total
-
-	besttime = ""
-	lowestAgents = -1
+	print(diff)
+	besttime = None
+	lowestAgents = None
 	for k, value in diff.items():
-		if value > lowestAgents:
+		if value > lowestAgents or not lowestAgents:
 			lowestAgents = value
 			besttime = k
-	#print(besttime)
+	print(besttime)
 	c.close()
 	#tzo = pytz.timezone("UTC")
 	#besttime = tzo.localize(besttime)
@@ -722,7 +815,7 @@ def findBestTimeMultiple(ski, b_date_format, b_time_start, b_time_end, duration,
 	diff = {}
 
 	for sk in ski:
-		c.execute("SELECT `date`, (agents_required - actual_agents_scheduled) as d from forecast_call_forecast where `date` >= %s and `date` <= %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
+		c.execute("SELECT `date`, actual_agents_scheduled as d from forecast_call_forecast where `date` >= %s and `date` < %s and queue = %s", (b_time_start_format, b_time_end_format, sk))
 		results = c.fetchall()
 
 		for r in results:
@@ -748,10 +841,10 @@ def findBestTimeMultiple(ski, b_date_format, b_time_start, b_time_end, duration,
 
 
 	besttime = ""
-	lowestAgents = -1
+	lowestAgents = None
 
 	for k, value in diff.items():
-		if value < lowestAgents or lowestAgents == -1:
+		if value > lowestAgents or not lowestAgents:
 			lowestAgents = value
 			besttime = k
 	c.close()

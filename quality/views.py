@@ -12,6 +12,8 @@ from clients.models import Language
 from quality.models import Form, Section, Question, Evaluation, Response, Form_Overview, Form_Evaluation
 import sys
 from django.db.models import Q
+from datetime import datetime
+import pytz
 # Create your views here.
 #@permission_required('polls.can_vote')
 @login_required()
@@ -229,7 +231,7 @@ def formActionv2(request, form_n='Phone', form = -1):
 	evaluator = request.user
 	supervisor = {}
 	form_name = form_n + "-Form"
-    
+
 	if form_n == 'Chat':
 		form_name = 'Email-Form'
 
@@ -253,7 +255,7 @@ def formActionv2(request, form_n='Phone', form = -1):
 		languages[language.id] = language.name
 
 	q_form = Form.objects.filter(valid = True).filter(name = form_name)[0]
-	
+
 	q_sections = Section.objects.filter(form = q_form).order_by('order')
 
 	form_render = []
@@ -428,6 +430,10 @@ def formActionv2(request, form_n='Phone', form = -1):
 		for f_q in field_q:
 			fields[f_q.field] = f_q.value
 
+		sup = Profile.objects.get(pk = overview['selectEvalName'])
+
+		supervisor[overview['selectEvalName']] = sup.user.first_name + " " + sup.user.last_name
+
 		if is_agent and str(overview['selectAgentName']) != str(request.user.profile.id):
 			errors['notauth'] = "You are not authorize to see this evaluation"
 			fields = {}
@@ -463,7 +469,7 @@ def formSearchv2(request):
 	for agent in sups_obj:
 		temp = {}
 		temp['name'] = agent.first_name + " " + agent.last_name
-		temp['id'] = agent.id
+		temp['id'] = agent.profile.id
 		supervisors.append(temp)
 
 	agents_obj = User.objects.filter(groups__name='Agent').order_by('first_name')
@@ -484,34 +490,69 @@ def formSearchv2(request):
 
 	if request.POST:
 		#print(request.POST)
+		tz = pytz.timezone(request.user.profile.location.iso_name)
 		form_search = Form_Evaluation.objects.all()
 		searchq = Q()
 		for key, value in request.POST.items():
 			if "select" in key or "input" in key or "calendar" in key:
 				if len(value) > 0:
-					searchq = searchq | (Q(field = key) & Q(value = value))
 					fields[key] = value
+					if "calendarDateEval" in key and "submit" not in key:
+						if key == "calendarDateEvalFrom":
+							date_search = datetime.strptime(fields['calendarDateEvalFrom'], "%Y-%m-%d")
+							searchq = searchq & (Q(form_overview__created_time__gte = tz.localize(date_search)))
+						else:
+							date_search = datetime.strptime(fields['calendarDateEvalTo'], "%Y-%m-%d")
+							searchq = searchq & (Q(form_overview__created_time__lte = tz.localize(date_search)))
+						continue
+					searchq = searchq | (Q(field = key) & Q(value = value))
 
-		form_search = form_search.filter(searchq)
+		if is_agent and 'selectAgentName' not in fields:
+			print("adding agent")
+			fields['selectAgentName'] = str(agents[0]['id'])
+			searchq = searchq | (Q(field = 'selectAgentName') & Q(value = agents[0]['id']))
+
+		form_search = form_search.filter(searchq).order_by('-form_overview_id')
 
 		#print(form_search.query)
+		#print(agents[0]['id'])
+		#print(len(form_search))
+		#print(fields)
 		forms = {}
+		forms_list = []
 		if form_search:
 			for f_s in form_search:
-				if f_s.form_overview not in forms:
-					forms[f_s.form_overview.id] = {}
+				if f_s.form_overview.id not in forms:
+					ev = Evaluation.objects.filter(form_overview = f_s.form_overview)[0]
+					qu = Question.objects.get(pk = ev.question.id)
+ 					se = Section.objects.get(pk = qu.section.id)
+					fo = Form.objects.get(pk = se.form.id)
+					t = fo.name
+					t = t.replace("-Form", "")
+					forms[f_s.form_overview.id] = None
+					form_dict = {}
+					form_dict[f_s.form_overview.id] = {t:{}}
 					f_search = Form_Evaluation.objects.filter(form_overview = f_s.form_overview)
 					for f in f_search:
+						if f.field in fields:
+							if fields[f.field] != f.value:
+								del forms[f_s.form_overview.id]
+								break
 						if "Agent" in f.field or "EvalName" in f.field:
-							a = Profile.objects.get(pk = f.value)
-							forms[f.form_overview.id][f.field] = a.user.first_name + " " + a.user.last_name
+							try:
+								a = Profile.objects.get(pk = f.value)
+								form_dict[f.form_overview.id][t][f.field] = a.user.first_name + " " + a.user.last_name
+							except:
+								continue
 						elif "Language" in f.field:
 							l = Language.objects.get(pk = f.value)
-							forms[f.form_overview.id][f.field] = l.name
+							form_dict[f.form_overview.id][t][f.field] = l.name
 						else:
-							forms[f.form_overview.id][f.field] = f.value
+							form_dict[f.form_overview.id][t][f.field] = f.value
+					if f_s.form_overview.id in forms:
+						forms_list.append(form_dict)
 
-
-		return render(request, "quality/search_v2.html", {"results":forms, 'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
+		#print(forms_list)
+		return render(request, "quality/search_v2.html", {"results":forms_list, 'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
 
 	return render(request, "quality/search_v2.html", {'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})

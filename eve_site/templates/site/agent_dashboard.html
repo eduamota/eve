@@ -34,16 +34,45 @@
     <script src="{% static 'js/axios.js' %}"></script>
     <script>
 
+
 	   $(document).ready(function() {
+        var $input = $('.datepicker').pickadate();
+        var picker = $input.pickadate('picker');
+        picker.on('set', function(thingSet) {
+          var mom = this.get();
+            if (mom.length > 0){
+                var momentObj = moment(mom, 'DD MMMM, YYYY');
+                $('#calendar').fullCalendar('gotoDate', momentObj);
+            }
+        });
        $('select').material_select();
 		$('#calendar').fullCalendar({
             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
             height: 600,
             contentHeight: 600,
+            customButtons: {
+                calendarButton: {
+                  text: 'calendar',
+                  click: function() {
+                    var $input = $('.datepicker').pickadate();
+                    var picker = $input.pickadate('picker');
+                    picker.open(false);
+                    picker.on('open', function() {
+                      //console.log('This logs without opening!');
+                    });
+                  }
+                },
+                refreshButton: {
+                  text: 'refresh',
+                  click: function() {
+                    $('#calendar').fullCalendar( 'refetchEvents' );
+                  }
+                },
+              },
             header: {
 				left: 'prev',
 				center: 'title',
-				right: 'next today'
+				right: 'next today calendarButton refreshButton'
 			},
             views: {
                 agendaDay: {
@@ -82,8 +111,76 @@
 
             }
 		});
-           
-           
+
+        var d = new Date();
+        var firstHour = d.getHours() - 5;
+        $('#generalCalendar').fullCalendar({
+            schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+            height: 600,
+            contentHeight: 600,
+            customButtons: {
+                calendarButton: {
+                  text: 'calendar',
+                  click: function() {
+                    var $input = $('.datepicker').pickadate();
+                    var picker = $input.pickadate('picker');
+                    picker.open(false);
+                    picker.on('open', function() {
+                      //console.log('This logs without opening!');
+                    });
+                  }
+                },
+                refreshButton: {
+                  text: 'refresh',
+                  click: function() {
+                    $('#generalCalendar').fullCalendar( 'refetchEvents' );
+                  }
+                },
+              },
+            header: {
+                
+				left: 'prev',
+				center: 'title',
+				right: 'next today'
+			},
+            nowIndicator: true,
+            resourceOrder: 'title,',
+            slotDuration: '02:00:00',
+            displayEventEnd: true,
+            displayEventTime: true,
+            defaultView: 'timelineDay',
+            scrollTime: { hours: firstHour, minutes:0 },
+			editable: false,
+            resourceLabelText: "Name",
+			eventLimit: true, // allow "more" link when too many events
+            resources: {
+                url: '/wfm/generalResources/',
+                type: 'GET'
+              },
+            events:
+                {
+                    url: '/wfm/general_team_events/', // use the `url` property
+                },
+            eventMouseover: function(event, jsEvent, view){
+                var msg = "<strong>" + event.title + "</strong><br/>From: " + event.start.format("h:mm A") + "<br/>To: " + event.end.format("h:mm A");
+                var tooltip = '<div class="tooltipevent" style="width:150px;height:60px;background:#fff;position:absolute;z-index:10001;">' + msg + '</div>';
+                var $tooltip = $(tooltip).appendTo('body');
+
+                $(this).mouseover(function(e) {
+                    $(this).css('z-index', 10000);
+                    $tooltip.fadeIn('500');
+                    $tooltip.fadeTo('10', 1.9);
+                }).mousemove(function(e) {
+                    $tooltip.css('top', e.pageY + 10);
+                    $tooltip.css('left', e.pageX + 20);
+                });
+            },
+            eventMouseout: function(calEvent, jsEvent) {
+                $(this).css('z-index', 8);
+                $('.tooltipevent').remove();
+            }
+		});
+
         new Vue({
             el: '#stats',
             delimiters: ['${','}'],
@@ -97,9 +194,10 @@
                   emails: 0,
                 }
               },
-              mounted () {
-                axios
-                  .get('http://localhost:8000/agent/stats')
+              methods: {
+                loadData: function(){
+                    axios
+                  .get('/agent/stats')
                   .then(({data})=>{
                     this.calls= data.calls,
                     this.aht = data.aht,
@@ -107,41 +205,83 @@
                     this.chats = data.chats,
                     this.act = data.act,
                     this.emails = data.emails
-                })
-              } 
+                    });
+                }  
+              },
+              mounted () {
+                this.loadData();
+
+                setInterval(function () {
+                  this.loadData();
+                }.bind(this), 1000); 
+              }
         });
-           
+
         new Vue({
             el: '#conts',
             delimiters: ['${','}'],
-              data () {
-            return {
-                contacts: 0
-            }
+              data: {
+                contacts: []
               },
-              mounted () {
-                axios
-                  .get('http://localhost:8000/agent/contacts')
+               methods: {
+                loadData: function () {
+                  axios
+                  .get('/agent/contacts')
                   .then(({data})=>{
                     this.contacts = data
-                })
-              } 
+                });
+                }
+              },
+            mounted () {
+                this.loadData();
+                
+                setInterval(function () {
+                  this.loadData();
+                }.bind(this), 1000); 
+            }
+              
+                
         });
+           
+        var selectEl = document.getElementById('agentState');
+           
+        selectEl.onchange = function(){				
+            var theUrl = "/agent/status/" + this.value;
+            console.log(theUrl);
+            var xmlHttp = new XMLHttpRequest();
+
+            xmlHttp.onreadystatechange = function() {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200){
+                    var stat = JSON.parse(xmlHttp.responseText);
+                    $('#statusMessage').text(stat['status']);
+                }
+            }
+            xmlHttp.open("GET", theUrl, true); // true for asynchronous
+            xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencodeds");
+            xmlHttp.send();
+        };
 	});
-        
+
     </script>
 {% endblock head_js %}
 {% block pagetitle %}Agent Dashboard{% endblock pagetitle %}
 
 {% block content %}
 <div class="">
+    
+    <div class="col s2">
+    <input id="minCalendar" type="text" class="datepicker hide">
+  </div>
     <div class="row">
 
       <div class="col s5">
           <!-- My Schedule -->
-          <div class="row">
-            <div id='calendar' class="col s12"></div>
-          </div>
+          <ul class="tabs">
+            <li class="tab col s3"><a href="#calendar">My Calendar</a></li>
+            <li class="tab col s3"><a href="#generalCalendar">Team Calendar</a></li>
+          </ul>
+          <div id='calendar' class="col s12"></div>
+          <div id='generalCalendar' class="col s12"></div>
       </div>
 
       <div class="col s4" id="app">
@@ -157,9 +297,9 @@
                 <h2>ACT: ${act}</h2>
                 <h2>Emails Replied: ${emails}</h2>
               </div>
-              
+
           </div>
-          <div class="row" id="conts">
+          <div class="row" id="conts" style="height:500px; overflow: auto;">
                <ul id="contact_list"  class="collection with-header">
                   <li class="collection-header"><h4>Contacts</h4></li>
                   <li class="collection-item" v-for="contact in contacts">
@@ -191,6 +331,7 @@
   						</select>
   						<label>Agent State</label>
                 </div>
+                <div><span id="statusMessage"></span></div>
         </div>
     </div>
 </div>

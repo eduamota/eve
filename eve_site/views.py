@@ -19,6 +19,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import user_passes_test
 from django.db import connection
 import datetime
+from django.contrib.auth.models import User, Group
 import json
 try:
 	from urllib.parse import urlencode
@@ -27,6 +28,11 @@ except ImportError: # Python 2
 	from urllib import urlencode
 	from urllib2 import urlopen, Request
 
+roles = {"supervisor": False, "agent": False, "clientadmin": False, "teamlead": False, "wfmadmin": False, "qa": False}
+request_actions = {"/wfm/request/Timeoff":"Request Time Off",
+			"/wfm/request/Overtime":"Request Overtime",
+			"/wfm/request/Meeting":"Request a 1-1 / Coaching",
+								}
 
 # Create your views here.
 class MethodRequest(Request):
@@ -37,6 +43,15 @@ class MethodRequest(Request):
   def get_method(self):
 	return self._method if self._method else super(RequestWithMethod, self).get_method()
 
+from django import template
+from django.contrib.auth.models import Group
+
+register = template.Library()
+
+@register.filter(name='has_group')
+def has_group(user, group_name):
+    group = Group.objects.get(name=group_name)
+    return True if group in user.groups.all() else False
 
 def callAPI(met, url, data = False):
 
@@ -78,14 +93,31 @@ def change_password(request):
         'form': form
     })
 
+@login_required()
 def home_page(request):
+    for r, v in roles.items():
+        roles[r] = False
+    group = request.user.groups.values_list('name', flat=True)
+    for g in group:
+        #print(str(g).lower())
+        if str(g).lower() == 'admin':
+            for r, v in roles.items():
+                roles[r] = True
+            break
+        if str(g).lower() in roles:
+            roles[str(g).lower()] = True
     #print(roles)
-    return render(request, 'site/dashboard.html')
+    return render(request, 'site/dashboard.html', {"roles": roles,})
 
+@login_required()
 def agent_dashboard(request):
-	req =	 requests.get("http://10.5.225.93/jasperserver/rest_v2/reports/Personal_Stats/Agent_Contact_Stats.html?Start_Date=2018-01-11&End_Date=2018-01-17&LoggedInUserEmailAddress=lgarcia@hyperwallet.com", auth=('emota','L!$e)&abby12'))
-	js = req.text
-	return render(request, 'site/agent_dashboard.html', {"stats":js})
+	name = request.user.first_name + " " + request.user.last_name
+	return render(request, 'site/agent_dashboard.html', {"agentName":name, "actions": request_actions})
+
+@login_required()
+def test_agent_dashboard(request):
+	name = request.user.first_name + " " + request.user.last_name
+	return render(request, 'site/test_dashboard.html', {"agentName":name, "actions": request_actions})
 
 def get_locations(request, timep = "current"):
 
@@ -179,10 +211,14 @@ def tm_dashboard(request):
 def getAgentStats(request):
 	#with connection.cursor() as c:
 	#	c.execute("SELECT ")
-    email = request.user.email
+    test_user = User.objects.get(pk=49)
+    print(test_user)
+    email = test_user.email
+    employee_id = test_user.profile.employee_number
     response = {'calls':0, 'aht': "0:00", 'awt': "0:00", 'chats':0, "act": "0:00", "emails": 0}
     query = "select v.Agent_ID from ops_system.voxter_user v where v.email = '{}'".format(email,)
     query2 = "select state, a.Pause_Event, avg(duration), count(duration) from ops_system.agent_status a where a.agent_id = '{}' and a.Start_Time >= date(NOW()) group by state, a.Pause_Event"
+    query3 = "select count(id), avg(chat_time) from ops_etl.chat_info where agent_id = {} and created_datetime >= date(NOW()) and chat_time > 0".format(employee_id,)
     data = None
 
     with connection.cursor() as c:
@@ -190,6 +226,8 @@ def getAgentStats(request):
         agent_id = c.fetchall()
         c.execute(query2.format(agent_id[0][0]))
         data = c.fetchall()
+        c.execute(query3)
+        c_data = c.fetchall()
 
     if data:
         response = {}
@@ -200,6 +238,9 @@ def getAgentStats(request):
             elif row[1] == 'Wrapup time':
                 response['awt'] = str(datetime.timedelta(seconds=int(row[2])))
 
+    response['chats'] = c_data[0][0]
+    if c_data[0][1]:
+    	response['act'] = str(datetime.timedelta(seconds=int(c_data[0][1])))
     return JsonResponse(response)
 
 def getAgentContacts(request):

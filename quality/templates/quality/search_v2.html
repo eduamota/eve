@@ -92,12 +92,28 @@
                     <select id="selectEvalType" name="selectEvalType">
                         <option value="" disabled selected>Evaluation Type</option>
                         <option value="Metabank">Metabank</option>
+                        <option value="All Trans">All Trans</option>
+                        <option value="Bancorp">Bancorp</option>
+                        <option value="Valitor">Valitor</option>
                         <option value="Internal">HW Internal</option>
                     </select>
                     <label>Evaluation Type</label>
                 </div>
             
             </div>
+                
+            <div class="row">
+                <div class="input-field col s3">
+                    <input id="calendarDateEvalFrom" name="calendarDateEvalFrom" type="text" class="datepicker">
+                    <label for="calendarDateEvalFrom">Date of Evaluation From</label>
+                </div>
+                <div class="input-field col s3">
+                    <input id="calendarDateEvalTo" name="calendarDateEvalTo" type="text" class="datepicker">
+                    <label for="calendarDateEvalTo">Date of Evaluation To</label>
+                </div>
+            
+            </div>
+                
             </div>
             </div>
             
@@ -119,25 +135,30 @@
                     </thead>
                     <tbody>
                         {% if results %}
-                            {% for id, values in results.items %}
+                            {% for form in results %}
+                            {% for id, ty in form.items %}
+                                {% for t, values in ty.items %}
                                 <tr>
-                                    <th><a href="/quality/form/v2/{{id}}">{{id}}</a></th>
-                                    <th><a href="/quality/form/v2/{{id}}">{{values.selectAgentName}}</a></th>
-                                    <th><a href="/quality/form/v2/{{id}}">{{values.selectLanguage}}</a></th>
-                                    <th><a href="/quality/form/v2/{{id}}">{{values.inputWalletNumber}}</a></th>
-                                    <th><a href="/quality/form/v2/{{id}}">{{values.calendarDateCall}}</a></th>
-                                    <th><a href="/quality/form/v2/{{id}}">{{values.selectEvalType}}</a></th>
-                                    <th><a href="/quality/form/v2/{{id}}">{{values.selectEvalName}}</a></th>
-                                    <th><a href="/quality/form/v2/{{id}}">{{values.inputRecordingFile}}</a></th>
-                                    <th><a href="/quality/form/v2/{{id}}">{{values.inputTotalScore}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{id}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.selectAgentName}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.selectLanguage}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.inputWalletNumber}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.calendarDateCall}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.selectEvalType}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.selectEvalName}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.inputRecordingFile}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.inputTotalScore}}</a></th>
                                 </tr>
+                                {% endfor %}
+                            {% endfor %}
                             {% endfor %}
                         {% endif %}
                     </tbody>
                 </table> 
             </div>
             <div class="row">
-                <div class="col s2">
+                <br>
+                <div class="col s2 input-field">
                     <button class="btn waves-effect waves-light" type="submit" name="action" value="submit">Search<i class="material-icons right">send</i></button>
                 </div>
                 
@@ -149,6 +170,16 @@
             
             <br/>
             <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>   
         </form>
     
     </div>
@@ -168,14 +199,39 @@
             
             $('select').material_select();    
             
-            $('#dateCall').pickadate({
+            $('#calendarDateCall').pickadate({
                 selectMonths: true, // Creates a dropdown to control month
                 selectYears: 15, // Creates a dropdown of 15 years to control year,
                 today: 'Today',
                 clear: 'Clear',
                 close: 'Ok',
-                closeOnSelect: false, // Close upon selecting a date,
+                closeOnSelect: true, // Close upon selecting a date,
                 format: 'yyyy-mm-dd', 
+                dateFormat: 'yyyy-mm-dd',
+                formatSubmit: 'yyyy-mm-dd',
+              });
+            
+            $('#calendarDateEvalFrom').pickadate({
+                selectMonths: true, // Creates a dropdown to control month
+                selectYears: 15, // Creates a dropdown of 15 years to control year,
+                today: 'Today',
+                clear: 'Clear',
+                close: 'Ok',
+                closeOnSelect: true, // Close upon selecting a date,
+                format: 'yyyy-mm-dd', 
+                dateFormat: 'yyyy-mm-dd',
+                formatSubmit: 'yyyy-mm-dd',
+              });
+            
+            $('#calendarDateEvalTo').pickadate({
+                selectMonths: true, // Creates a dropdown to control month
+                selectYears: 15, // Creates a dropdown of 15 years to control year,
+                today: 'Today',
+                clear: 'Clear',
+                close: 'Ok',
+                closeOnSelect: true, // Close upon selecting a date,
+                format: 'yyyy-mm-dd', 
+                dateFormat: 'yyyy-mm-dd',
                 formatSubmit: 'yyyy-mm-dd',
               });
             

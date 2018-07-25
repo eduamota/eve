@@ -21,7 +21,7 @@
 
     </style>
     {% endblock head_css_page %}
-
+{% load app_filters %}
 {% block head_js %}
     {% load static %}
     <script src="{% static "shifts/lib/moment.min.js" %}"></script>
@@ -31,20 +31,48 @@
     <script>
 
 	   $(document).ready(function() {
-
+        var $input = $('.datepicker').pickadate();
+        var picker = $input.pickadate('picker');
+        picker.on('set', function(thingSet) {
+          var mom = this.get();
+            if (mom.length > 0){
+                var momentObj = moment(mom, 'DD MMMM, YYYY');
+                $('#calendar').fullCalendar('gotoDate', momentObj);
+            }
+        });
 		$('#calendar').fullCalendar({
             height: 700,
             contentHeight: 700,
             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
             resourcesInitiallyExpanded: false,
+            customButtons: {
+                calendarButton: {
+                  text: 'calendar',
+                  click: function() {
+                    var $input = $('.datepicker').pickadate();
+                    var picker = $input.pickadate('picker');
+                    picker.open(false);
+                    picker.on('open', function() {
+                      //console.log('This logs without opening!');
+                    });
+                  }
+                },
+                refreshButton: {
+                  text: 'refresh',
+                  click: function() {
+                    $('#calendar').fullCalendar( 'refetchEvents' );
+                  }
+                },
+              },
             header: {
-				left: 'prev,next today',
+				left: 'prev,next calendarButton today refreshButton',
 				center: 'title',
                 right: 'timelineMonth,timelineWeek,timelineDay'
 			},
             defaultView: 'timelineDay',
 			//defaultDate: '2017-09-12',
-			editable: true,
+			editable: {% if request.user|has_group:"Admin"%}true{% else %}false{% endif %},
+            selectable: true,
 			eventLimit: true, // allow "more" link when too many events
             resourceOrder: 'title,',
             views: {
@@ -76,6 +104,53 @@
                 // your event source
                 {
                     url: '/wfm/team_events/', // use the `url` property
+                },
+            select: function (start, end, jsEvent, view, resource) {
+                    var abc = prompt('Enter Title');
+                    var allDay = !start.hasTime && !end.hasTime;
+                    var newEvent = new Object();
+
+                    if (abc == 'Shift'){
+                        newEvent.title = abc;
+                        newEvent.start = moment(start).format();
+                        newEvent.end = moment(end).format();
+                        newEvent.allDay = allDay;
+                        newEvent.resourceId = resource.id;
+                        newEvent.color = '#008288';
+                        newEvent.textColor = '#fff';
+
+                        $('#calendar').fullCalendar('renderEvent', newEvent);
+                    }
+                    else{
+                        var theUrl = "/api/event/";
+
+                        var json_upload = JSON.stringify({name: abc, });
+
+                        var xmlHttp = new XMLHttpRequest();
+
+                        xmlHttp.onreadystatechange = function() {
+                            if (xmlHttp.readyState == 4 && xmlHttp.status == 200){
+                                var stat = JSON.parse(xmlHttp.responseText);
+                                evts = stat.results;
+                                for (x in evts) {
+                                    if (abc == evts[x]['name']){
+                                        newEvent.title = abc;
+                                        newEvent.start = moment(start).format();
+                                        newEvent.end = moment(end).format();
+                                        newEvent.allDay = allDay;
+                                        newEvent.resourceId = resource.id;
+                                        newEvent.color = evts[x]['color'];
+                                        newEvent.textColor = evts[x]['text_color'];
+                                        $('#calendar').fullCalendar('renderEvent', newEvent);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+                        xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencodeds");
+                        xmlHttp.send(json_upload);
+                    }
                 },
             eventDrop: function(event, delta, revertFunc) {
 
@@ -167,11 +242,11 @@
                 console.log('Coordinates: ' + jsEvent.pageX + ',' + jsEvent.pageY);
 
                 console.log('Current view: ' + view.name);
-                 
+
                 console.log('Resource ID: ' + resourceObj.id);
                  console.log(resourceObj);
-                 
-                 
+
+
                 var theUrl = "/wfm/change/";
                 var json_upload = JSON.stringify({profile: resourceObj.id, event:event.id, start: event.start, end: event.end, title: event.title, time_delta: delta.asMinutes()});
 
@@ -197,6 +272,15 @@
               }
 		});
 		$('.tooltipped').tooltip({delay: 50});
+    $('.datepicker').pickadate({
+       selectMonths: true, // Creates a dropdown to control month
+       selectYears: 15, // Creates a dropdown of 15 years to control year,
+       today: 'Today',
+       clear: 'Clear',
+       close: 'Ok',
+       closeOnSelect: true, // Close upon selecting a date,
+       container: undefined, // ex. 'body' will append picker to body
+     });
 	});
 
     </script>
@@ -205,8 +289,12 @@
 {% block content %}
     <div id='header'>
         <span>{{ name }}</span>
-
     </div>
+  <div class="row">
+    <div class="col s2">
+    <input id="minCalendar" type="text" class="datepicker hide">
+  </div>
+  </div>
 	<div id='calendar'></div>
     <div id="modal1" class="modal">
     <div class="modal-content">

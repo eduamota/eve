@@ -16,10 +16,6 @@
 
     {% block head_js %}
         <script>
-            
-        
-
-            
             function actionRequest(id, st){
                 var user_id = '{{user.id}}';
                 user_id = parseInt(user_id);
@@ -34,6 +30,9 @@
                 var data = {"status": st, "actioned_by": user_id, "approved": approved};
                 var shift_exc = "";
                 var t_t = "PATCH";
+                if (st == "3"){
+                    t_t = "DELETE";
+                }
                 
                 $.ajax({
                     url: '/api/shift_exception/' + id + "/",
@@ -113,9 +112,8 @@
                 
                 <div class="input-field col s3">
                     <select id="agent_id" name="agent_id">
-                        <option value="" disabled selected>Choose an agent</option>
                         {% for key, agent in agents.items %}
-                            <option value="{{key}}">{{agent}}</option>
+                            <option value="{{key}}" selected>{{agent}}</option>
                         {% endfor %}
                     </select>
                     <label>Agent Name</label>

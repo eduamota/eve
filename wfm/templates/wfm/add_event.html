@@ -26,13 +26,23 @@
             </div>
             
             <div class="row">
+                <div class="input-field col s6">
+                    <select id="all_day" name="all_day">
+                        <option value="No" selected>No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                    <label>Is it an all day activity?</label>
+                </div>
+            </div>
+            
+            <div class="row">
                 <div class="input-field col s3">
                     <input id="from" name="from" type="text" class="datepicker">
                     <label for="from">From Date</label>
                 </div>
                 <div class="input-field col s3">
                     <input id="from_time" name="from_time" type="text" class="timepicker">
-                    <label for="from_time">From Start Time</label>
+                    <label id="from_time_label" for="from_time">From Start Time</label>
                 </div>
                 
             </div>
@@ -44,7 +54,7 @@
                 </div>
                 <div class="input-field col s3">
                     <input id="to_time" name="to_time" type="text" class="timepicker">
-                    <label for="to_time">To End Time</label>
+                    <label id="to_time_label" for="to_time">To End Time</label>
                 </div>
             </div>
             
@@ -92,6 +102,23 @@
             close: 'Ok',
             closeOnSelect: true // Close upon selecting a date,
           });
+        
+        $("#all_day").on('change', function() {
+            var sele = $("#all_day").val();
+            if (sele == "Yes"){
+                $('#from_time').hide();
+                $('#to_time').hide();
+                $('#from_time_label').hide();
+                $('#to_time_label').hide();
+            }
+            else{
+                $('#from_time').show();
+                $('#to_time').show();
+                $('#from_time_label').show();
+                $('#to_time_label').show();
+            }
+            
+        });
 
         
         //Initialize values if available
@@ -105,6 +132,9 @@
 
             {% endfor %}
             $('#event').material_select();
+            $('#agent').material_select();
+            $('#all_day').material_select();
+            $('#all_day').change();
         {% endif %}
     });
 </script>

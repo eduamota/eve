@@ -1,0 +1,76 @@
+{% extends 'site/base.html' %}
+
+{% block title %}One on one scheduler{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+             .error {color: #FF0000;}
+             
+             .pinned {width: 70%; padding-left: 80px}
+        </style>
+    {% endblock head_css_page %}
+{% block pagetitle %}Review Requests{% endblock pagetitle %}
+
+    {% block head_js %}
+        
+    {% endblock head_js %}
+{% load app_filters %}
+{% block content %}
+
+    {% if messages %}
+        {% for message, c in messages.items %}
+            <script>Materialize.toast('{{message}}', 4000, '{{c}}');</script>
+        {% endfor %}
+    {% endif %}
+
+    <div class="container">
+        
+        <form method="post" action="" id="search-requests">
+            {% csrf_token %}
+            <div class="row">
+             <div class="col s3"  class="input-field col s12">
+                <select id="weekSelection" name="weekSelection">
+                  <option value="" disabled selected>Choose your week</option>
+                {% for week in weeks %}
+                  <option value={{week.date}}>{{week.week}}</option>
+                {% endfor %}
+                </select>
+                <label>Please select a week</label>
+              </div>
+            </div>
+                <div class="row">
+                {% for agent in agents %}
+                
+                    
+                    <span class="col s2 offset-s1">{{agent.name}}</span>
+                    <select class ="col s3">
+                        {% for slot in agent.slots %}
+                            {% for s in slot.slots %}
+                                <option value="{{agent.id}}-{{slot.date}}">{{s}}</option>
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                    
+                
+                {% endfor %}
+                </div>
+            <div class="row">
+                <button class="btn waves-effect waves-light" type="submit" name="action">Submit
+                    <i class="material-icons right">send</i>
+                </button>
+            </div>
+        </form>
+    
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            $('select').material_select();
+          });
+    </script>
+       
+{% endblock content %}
+    

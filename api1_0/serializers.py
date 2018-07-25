@@ -75,3 +75,8 @@ class Job_StatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job_Status
         fields = ('id', 'name')
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        mode = Notification
+        fields = ('id', 'message', 'view', 'from_profile', 'profile')

@@ -37,13 +37,23 @@
             </div>
             
             <div class="row">
+                <div class="input-field col s6">
+                    <select id="all_day" name="all_day">
+                        <option value="No" selected>No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                    <label>Is it an all day activity?</label>
+                </div>
+            </div>
+            
+            <div class="row">
                 <div class="input-field col s3">
                     <input id="from" name="from" type="text" class="datepicker">
                     <label for="from">From Date</label>
                 </div>
                 <div class="input-field col s3">
                     <input id="from_time" name="from_time" type="text" class="timepicker">
-                    <label for="from_time">From Start Time</label>
+                    <label id="from_time_label" for="from_time">From Start Time</label>
                 </div>
                 
             </div>
@@ -55,7 +65,7 @@
                 </div>
                 <div class="input-field col s3">
                     <input id="to_time" name="to_time" type="text" class="timepicker">
-                    <label for="to_time">To End Time</label>
+                    <label id="to_time_label" for="to_time">To End Time</label>
                 </div>
             </div>
             
@@ -84,13 +94,13 @@
         $('select').material_select();
         
         $('.timepicker').pickatime({
-            default: 'now', // Set default time: 'now', '1:30AM', '16:30'
+            default: '12:00AM', // Set default time: 'now', '1:30AM', '16:30'
             fromnow: 0,       // set default time to * milliseconds from now (using with default = 'now')
             twelvehour: true, // Use AM/PM or 24-hour format
             donetext: 'OK', // text for done-button
             cleartext: 'Clear', // text for clear-button
             canceltext: 'Cancel', // Text for cancel-button
-            autoclose: false, // automatic close timepicker
+            autoclose: true, // automatic close timepicker
             ampmclickable: true, // make AM PM clickable
             aftershow: function(){} //Function for after opening timepicker
           });
@@ -103,7 +113,23 @@
             close: 'Ok',
             closeOnSelect: true // Close upon selecting a date,
           });
-
+        
+        $("#all_day").on('change', function() {
+            var sele = $("#all_day").val();
+            if (sele == "Yes"){
+                $('#from_time').hide();
+                $('#to_time').hide();
+                $('#from_time_label').hide();
+                $('#to_time_label').hide();
+            }
+            else{
+                $('#from_time').show();
+                $('#to_time').show();
+                $('#from_time_label').show();
+                $('#to_time_label').show();
+            }
+            
+        });
         
         //Initialize values if available
         
@@ -116,7 +142,12 @@
 
             {% endfor %}
             $('#event').material_select();
+            $('#agent').material_select();
+            $('#all_day').material_select();
+            $('#all_day').change();
         {% endif %}
     });
+             
+    
 </script>
 {% endblock footer_javascript_section %}
