@@ -99,7 +99,7 @@ class Shift_Exception(models.Model):
 
 class Shift_Exception_Note(models.Model):
     shift_exception = models.ForeignKey(Shift_Exception, on_delete=models.CASCADE)
-    note = models.CharField(max_length=250)
+    note = models.TextField()
     created_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
     created_time = models.DateTimeField(default=timezone.now)
 
@@ -122,3 +122,12 @@ class Log(models.Model):
 
     def __str__(self):              # __unicode__ on Python 2
         return self.event_type.name + " " + self.created_by.first_name
+
+class vacation_tracker(models.Model):
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    added_date_time = models.DateTimeField(default=timezone.now)
+    amount = models.DecimalField(max_digits=5, decimal_places=3, default=0)
+    description = models.CharField(max_length=250)
+
+    def __str__(self):
+        return self.profile__user__first_name + " " + self.profile__user__last_name + " " + self.description + " " + self.description
