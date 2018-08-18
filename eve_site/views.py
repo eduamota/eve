@@ -121,7 +121,7 @@ def test_agent_dashboard(request):
 
 def get_locations(request, timep = "current"):
 
-	conn = mysql.connector.connect(host="10.5.225.93",	# your host, usually localhost
+	conn = mysql.connector.connect(host="localhost",	# your host, usually localhost
 					 user='emota',		 # your username
 					 passwd='L!$e)&abby12',  # your password
 					 db="ops_system")		# name of the data base

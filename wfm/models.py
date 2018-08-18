@@ -104,7 +104,7 @@ class Shift_Exception_Note(models.Model):
     created_time = models.DateTimeField(default=timezone.now)
 
     def __str__(self):              # __unicode__ on Python 2
-        return str(self.created_by.first_name) + " " + str(self.created_by.last_name)
+        return str(self.created_by.user.first_name) + " " + str(self.created_by.user.last_name)
 
 class Log_Type(models.Model):
     name = models.CharField(max_length=50)

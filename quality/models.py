@@ -21,7 +21,7 @@ class Section(models.Model):
     weight = models.DecimalField(max_digits=5, decimal_places=2)
 
     def __str__(self):
-        return self.name
+        return self.name + " " + str(self.form)
 
 class Question(models.Model):
     question = models.CharField(max_length=500)
@@ -30,7 +30,7 @@ class Question(models.Model):
     weight = models.DecimalField(max_digits=5, decimal_places=2)
 
     def __str__(self):
-        return self.question
+        return self.question + " " + str(self.section)
 
 class Response(models.Model):
     answer = models.CharField(max_length=100)
@@ -63,4 +63,4 @@ class Evaluation(models.Model):
     form_overview = models.ForeignKey(Form_Overview, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.answer
+        return self.field + " " + self.question + " " + self.value

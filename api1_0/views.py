@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 # Create your views here.
 from wfm.models import *
 from utils.models import *
+from quality.models import *
 from rest_framework import viewsets
 from django.contrib.auth.models import User
 from .serializers import *
@@ -69,6 +70,12 @@ class Shift_ExceptionViewSet(viewsets.ModelViewSet):
                 elif sh.start_date_time <= from_dt and sh.end_date_time == to_dt:
                     sh.end_date_time = from_dt
                     sh.save()
+        elif (st== 1):
+            instance.approved = True
+            instance.save()
+        else:
+            instance.approved = False
+            instance.save()
         instance.save()
 
 
@@ -156,9 +163,16 @@ class Job_StatusViewSet(viewsets.ModelViewSet):
     queryset = Job_Status.objects.all()
     serializer_class = Job_StatusSerializer
 
-class NotificationSet(viewsets.ModelViewSet):
+class NotificationViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows notification models to be viewed or editedself.
     """
     queryset = Notification.objects.all()
     serializer_class = Notification
+
+class Form_OverviewViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows quality fomrs models to be viewed or edited
+    """
+    queryset = Form_Overview.objects.all()
+    serializer_class = Form_Overview

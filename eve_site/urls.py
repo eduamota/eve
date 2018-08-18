@@ -35,7 +35,8 @@ router.register(r'shift', apiViews.ShiftViewSet)
 router.register(r'day_model', apiViews.Day_ModelViewSet)
 router.register(r'job', apiViews.JobViewSet)
 router.register(r'job_status', apiViews.Job_StatusViewSet)
-router.register(r'notification', apiViews.NotificationSet)
+router.register(r'notification', apiViews.NotificationViewSet)
+router.register(r'form_overview', apiViews.Form_OverviewViewSet)
 
 urlpatterns = [
 	url(r'^api/', include(router.urls)),

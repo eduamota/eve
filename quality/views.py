@@ -232,9 +232,6 @@ def formActionv2(request, form_n='Phone', form = -1):
 	supervisor = {}
 	form_name = form_n + "-Form"
 
-	if form_n == 'Chat':
-		form_name = 'Email-Form'
-
 	#Run queries to retrieve the list of agents & language
 
 	sup_id = request.user.profile.id
@@ -443,6 +440,7 @@ def formActionv2(request, form_n='Phone', form = -1):
 		#print(fields)
 
 	c.close()
+	print(fields)
 	return render(request, 'quality/form_v2.html', {'errors': errors, 'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'overview':overview, 'form':form_render, 'service':service, 'form_id':form, 'is_agent':is_agent, 'form_type': form_n})
 
 @login_required()
@@ -553,6 +551,8 @@ def formSearchv2(request):
 						forms_list.append(form_dict)
 
 		#print(forms_list)
+
 		return render(request, "quality/search_v2.html", {"results":forms_list, 'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
+
 
 	return render(request, "quality/search_v2.html", {'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})

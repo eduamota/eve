@@ -7,6 +7,7 @@ Created on Thu Dec 07 12:32:46 2017
 
 from wfm.models import *
 from utils.models import *
+from quality.models import *
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
@@ -80,3 +81,8 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         mode = Notification
         fields = ('id', 'message', 'view', 'from_profile', 'profile')
+
+class Form_OverviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        mode= Form_Overview
+        fields = ('id', 'created_time', 'created_by', 'score')

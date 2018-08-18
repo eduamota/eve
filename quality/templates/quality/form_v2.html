@@ -63,7 +63,7 @@
                             <option value="{{key}}">{{language}}</option>
                         {% endfor %}
                     </select>
-                    <label>Call Language</label>
+                    <label>Language</label>
                 </div>
                 
                 <div class="input-field col s3">
@@ -75,7 +75,7 @@
             <div class="row">
                 <div class="input-field col s3">
                     <input id="calendarDateCall" name="calendarDateCall" type="text" class="datepicker">
-                    <label for="calendarDateCall">Date of Call</label>
+                    <label for="calendarDateCall">Date of Contact</label>
                 </div>
                 <div class="input-field col s3">
                     <input id="inputProgramName" name="inputProgramName" type="text" class="validate">
@@ -84,19 +84,17 @@
                 
                 <div class="input-field col s3">
                     <input id="inputRecordingFile" name="inputRecordingFile" type="text" class="validate">
-                    <label for="inputRecordingFile">Recording File Name</label>
+                    <label for="inputRecordingFile">File Name</label>
                 </div>
                 
                 <div class="input-field col s3">
                     <select id="selectEvalType" name="selectEvalType">
-                        <option value="" disabled selected>Choose a Bank</option>
+                        <option value="" disabled selected>Choose a Type</option>
                         <option value="Metabank">Metabank</option>
-                        <option value="All Trans">All Trans</option>
-                        <option value="Bancorp">Bancorp</option>
-                        <option value="Valitor">Valitor</option>
+                        <option value="Bancorp">Bancorp</option>s
                         <option value="Internal">HW Internal</option>
                     </select>
-                    <label>Related to Bank</label>
+                    <label>Evaluation Type</label>
                 </div>
             
             </div>
@@ -336,7 +334,7 @@
             },
             computed: {
                 // a computed getter
-                {% for section in form %} section{{ section.id }}() { qTotal = {% for question in section.questions %} parseFloat(this.question{{ question.id}}) + {% endfor %} 0; return qTotal;
+                {% for section in form %} section{{ section.id }}() { qTotal = {% for question in section.questions %} Math.abs(parseFloat(this.question{{ question.id}})) + {% endfor %} 0; return qTotal;
                 }, {% endfor %} 
               },
             ready: function() {
@@ -392,6 +390,7 @@
                 {% autoescape off %}
                 $('#{{field}}').val("{{value|escapejs}}");
                  {% endautoescape %}
+                 $('#{{field}}').trigger('autoresize');
             {% endfor %}
             
             {%for field, value in dropdowns.items %}
@@ -422,7 +421,11 @@
             selectObjects.each(function(index){
                 value = $(this).val()
                 if(value != "NA" && value != null && !allFailed){
-                    total += parseFloat(value);
+                    var vl = parseFloat(value);
+                    if (vl < 0){
+                        vl = vl * -1;
+                    }
+                    total += vl;
                     if(failed && parseFloat(value) == 0){
                         allFailed = true;
                         $("#inputAllFailed").val("True");
@@ -469,6 +472,7 @@
                     {% autoescape off %}
                     $('#{{field}}').val('{{value|escapejs}}');
                     {% endautoescape %}
+                    $('#{{field}}').trigger('autoresize');
                  {% endif %}
             {% endfor %}
             
@@ -480,6 +484,7 @@
                     {% autoescape off %}
                     $('#{{field}}').val('{{value|escapejs}}');
                     {% endautoescape %}
+                    $('#{{field}}').trigger('autoresize');
                  {% endif %}
             {% endfor %}
         

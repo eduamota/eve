@@ -193,8 +193,15 @@
                 else{
 
                     var theUrl = "/wfm/change/";
-                    var json_upload = JSON.stringify({profile:event.resourceId, event:event.id, start: event.start, end: event.end, title: event.title, time_delta: delta.asMinutes()});
-
+                    
+                    if (typeof delta !== 'undefined'){
+                        delta = 0;
+                    }
+                    else{
+                        delta = detla.asMinutes();
+                    }
+                    var json_upload = JSON.stringify({profile:event.resourceId, event:event.id, start: event.start, end: event.end, title: event.title, time_delta: delta});
+                    console.log(json_upload)
                     var xmlHttp = new XMLHttpRequest();
 
                     xmlHttp.onreadystatechange = function() {

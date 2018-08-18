@@ -14,65 +14,101 @@ from .tasks import runsaveShift, runsaveBreaks, runsaveShiftBreaks, runsaveMeeti
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import user_passes_test
+import sys, os
 
-
+# Define the actions that show up at the context menu
 request_actions = {"../request/Timeoff":"Request Time Off",
 			"../request/Overtime":"Request Overtime",
 			"../request/Meeting":"Request a 1-1 / Coaching",
 								}
-
+# Helper fucntion to get the last of the month. Helps with date ranges
 def last_day_of_month(any_day):
 	next_month = any_day.replace(day=28) + timedelta(days=4)  # this will never fail
 	return next_month - timedelta(days=next_month.day)
 
+# Adding shifts, optimizing breaks, and meetings are consider jobs. Use test to limit who can run this function
 @user_passes_test(lambda u: u.groups.filter(name__in=['Admin',]).exists())
 def schedule_job(request):
+	''' Saves into a database a job to add shifts, optime breaks, or schedule meetings.
+
+	@PARAMS:
+		request: Standard request oject from django
+
+	@RETURNS:
+		request: As required by the Django rest_framework
+		HTML: The wfm/add_exceptions.html renders the job to be added, the time frame, and the users that need to be consider for the job
+		agent_list: List of all agents ordered by first name in a dictionary object
+		event_list: List of possible actions that can be runself.
+		messages: Any error or sucessful messages to be presented to the user}
+
+	To-do:
+		*Change the agent list from straight dictrionary key= profile_id, value= first_name last_name, to a array of dictionaries
+		*Change the if statemet checking the if action in the POST object. It should just check if there is a POST and then validate the fields inside
+		*Change the parameters of the Shcedule meetings from being saved in the db to being passed to the function itself
 	'''
 
-	'''
+	# Obtain all active agents
 	agents = User.objects.filter(groups__name = 'Agent').filter(is_active=True)
+
+	# Initiate the dictionary of agents and add an All option
 	agent_list = {0:"All"}
 
+	# Capture the timezone of the current user to manage dates the user selects and dates the system will display
 	tz = pytz.timezone(request.user.profile.location.iso_name)
 
+	# Initiate the object to hold any messages to the user
 	messages = {}
+
+	# Transform the Django query into a dictionary list
 	for a in agents:
 		agent_list[a.pk] = a.first_name + " " + a.last_name
 
+	# Actions that can be schedule to be done, key is the value of the select list and the value is the text o display
 	event_list = {"Add_Breaks_and_Lunches":"Add Breaks and Lunches",
 			"Optimize_Breaks_and_Lunches":"Optimize Breaks and Lunches",
 			"Schedule_a_Meeting":"Schedule a Meeting",
 			"Insert_Shifts":"Insert Shifts",
 			"Insert_Shifts_&_Breaks":"Insert Shifts and add Breaks"}
 
+	# Check if the form has been submitted and there is an action
+	# To be changed
 	if 'action' in request.POST:
-		#print(request.POST)
+
+		# Capture the selection for each field, action, from what time to what time it needs to run and the agents it needs to run for
 		actions = request.POST.getlist('action')
 		start_date = request.POST.getlist('from')
 		end_date = request.POST.getlist('to')
 		agent = request.POST.getlist('agent')
 
+		# Convert datetime of start and end selections from string to a datetime object and localize it to the timezone of the user
 		start_date = datetime.strptime(start_date[0], '%d %B, %Y')
 		start_date = tz.localize(start_date)
 
 		end_date = datetime.strptime(end_date[0], '%d %B, %Y')
 		end_date = tz.localize(end_date) + timedelta(days=1)
 
+		# Get the job status object to use in the job object
 		st = Job_Status.objects.get(name="Queued")
 
-		param = ""
+		# Initialize a variable to hold any parameters to be used by the job
+		param = None
 
 		if actions[0] == "Schedule_a_Meeting":
+			''' Define the parameters to be abnle to schedule a meeting,
+			such as the number of the people to schedule
+			in each session, any notes, whether to move breaks / lunches / meetings and the duration of the meeting
+			'''
 			group_size = request.POST['group_size']
 			notes = request.POST['meeting_notes']
 			event = request.POST['event']
-			override = ""
+			override = None
 			duration = request.POST['duration']
 			if "override" in request.POST:
 				override = request.POST['override']
 
 			param = {"group_size": group_size, "override" : override, "notes": notes, "event": event, "duration":duration}
 
+		# Save the job for each agent selected. If All was selected the agetns is = 0 which no agent has.
 		for a in agent:
 			j = Job(job_type = actions[0],
 				from_date = start_date,
@@ -84,13 +120,16 @@ def schedule_job(request):
 
 			j.save()
 
+			# Log the request for each job saved with al the parameters selected
 			l_t = Log_Type.objects.get(name = "Add_Job")
 			log_info = {"job_type": str(j.job_type), "from_date": str(j.from_date), "to_date": str(j.to_date), "agents": str(j.agents), "status": str(j.status), "actioned_by": str(j.actioned_by)}
 			l = Log(created_by = request.user, log_type = l_t, log_info = json.dumps(log_info))
 			l.save()
 
+		# Register a successful message
 		messages['The job ' + request.POST['action'] + ' has been saved'] = "green"
 
+		# Call each function depending on the event
 		if actions[0] == 'Insert_Shifts':
 			runsaveShift()
 		elif actions[0] == 'Add_Breaks_and_Lunches':
@@ -101,8 +140,6 @@ def schedule_job(request):
 			runsaveMeetings()
 
 	return render(request, 'wfm/add_exceptions.html', {'agent_list': agent_list, 'event_list': event_list, "messages": messages})
-
-
 
 def set_timezone(request):
 	if request.method == 'POST':
@@ -321,7 +358,7 @@ def getAllExceptions(request):
 
 def getResources(request):
 
-	all_supervisors = Profile.objects.filter(user__groups__name = 'Supervisor')
+	all_supervisors = Profile.objects.filter(user__groups__name = 'Supervisor').filter(user__is_active = True)
 	schedule = []
 	#resource_cc = {}
 	#resource_cc['id'] = "CC"
@@ -331,7 +368,7 @@ def getResources(request):
 		resource_cc = {}
 		resource_cc['id'] = str(sup.user.pk)
 		resource_cc['title'] = sup.user.first_name + " " + sup.user.last_name
-		all_users = Profile.objects.filter(user__groups__name = 'Agent').filter(team_manager = sup.user)
+		all_users = Profile.objects.filter(user__groups__name = 'Agent').filter(team_manager = sup.user).filter(user__is_active = True)
 		schedule.append(resource_cc)
 
 		for us in all_users:
@@ -345,7 +382,7 @@ def getResources(request):
 	return JsonResponse(schedule, safe=False)
 
 def getTeamShifts(request):
-	all_users = Profile.objects.filter(user__groups__name = 'Agent')
+	all_users = Profile.objects.filter(user__groups__name = 'Agent').filter(user__is_active = True)
 
 	schedule = []
 
@@ -411,7 +448,7 @@ def getTeamShifts(request):
 
 def getGeneralResources(request):
 
-	all_agents = Profile.objects.filter(user__groups__name = 'Agent')
+	all_agents = Profile.objects.filter(user__groups__name = 'Agent').filter(user__is_active = True)
 	schedule = []
 	#resource_cc = {}
 	#resource_cc['id'] = "CC"
@@ -426,7 +463,7 @@ def getGeneralResources(request):
 	return JsonResponse(schedule, safe=False)
 
 def getGeneralTeamShifts(request):
-	all_users = Profile.objects.filter(user__groups__name = 'Agent')
+	all_users = Profile.objects.filter(user__groups__name = 'Agent').filter(user__is_active = True)
 
 	schedule = []
 
@@ -585,7 +622,7 @@ def add_event(request, ev=False):
 
 	events = ""
 	if not ev:
-		events = Event.objects.exclude(group__name = 'Break')
+		events = Event.objects.exclude(group__name = 'Break').exclude(name = 'Stat Holiday').exclude(name = "AWOL")
 	else:
 		events = Event.objects.filter(group__name = str(ev))
 	event_list = {}
@@ -673,6 +710,10 @@ def add_event(request, ev=False):
 			m = "Please check you dates, these seem to be invalid"
 			messages[m] = "red"
 			return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data})
+		elif total_time.total_seconds()/3600 < 4 and ev == "Vacation":
+			m = "You can not request Vacation for less than 4 hours"
+			messages[m] = "red"
+			return render(request, 'wfm/add_event.html', {"actions": request_actions, "event_list":event_list, "messages":messages, "form_data": form_data})
 
 		sh_f = ''
 		s_diff = 0
@@ -691,17 +732,18 @@ def add_event(request, ev=False):
 		no_valid_shift = False
 		if not future_request:
 			try:
-				sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__gte = from_dt).filter(end_date_time__lte = to_dt)
+				sh_f = Shift_Sequence.objects.filter(Q(user = profile) & ((Q(start_date_time__gte = from_dt) & Q(end_date_time__lte = to_dt)) | (Q(start_date_time__lte = from_dt) & Q(end_date_time__gte = to_dt))))
 				print("found shift")
 				print(sh_f)
 				if len(sh_f) == 0:
 					no_valid_shift = True
+				print(no_valid_shift)
 			except:
 				no_valid_shift = True
 
 			if no_valid_shift:
 				if "Overtime" in ev:
-					sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__lte = from_dt).filter(end_date_time__gte = to_dt)
+					sh_f = Shift_Sequence.objects.filter(Q(user = profile) & ((Q(start_date_time__gte = from_dt) & Q(end_date_time__lte = to_dt)) | (Q(start_date_time__lte = from_dt) & Q(end_date_time__gte = to_dt))))
 				else:
 					m = "There is no shifts for this date range"
 					messages[m] = "red"
@@ -779,7 +821,9 @@ def add_event(request, ev=False):
 			to_dt = to_dt.replace(hour = 4, minute = 30, second = 0)
 			while s_diff <= e_diff.days:
 				tmp_from_dt =  from_dt + timedelta(days = s_diff)
-				tmp_to_dt = to_dt + timedelta(days = s_diff)
+				tmp_to_dt = from_dt + timedelta(days = s_diff)
+				tmp_to_dt = tmp_to_dt.replace(hour = 4, minute = 30, second = 0)
+
 				event_obj = Shift_Exception(user = profile, event = eve_obj, start_date_time = tmp_from_dt, start_diff = 0, end_date_time = tmp_to_dt, end_diff = 0, approved=False, actioned_by = cuser, status = 0 )
 				event_obj.save()
 
@@ -922,7 +966,7 @@ def add_request_manager(request, ev=False):
 		future_request = False
 
 		try:
-			sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__year = to_dt.year).filter(start_date_time__month = to_dt.month)
+			sh_f = Shift_Sequence.objects.filter(Q(user = profile) & ((Q(start_date_time__gte = from_dt) & Q(end_date_time__lte = to_dt)) | (Q(start_date_time__lte = from_dt) & Q(end_date_time__gte = to_dt))))
 			if len(sh_f) == 0:
 				future_request = True
 			print("Not in the future")
@@ -932,8 +976,8 @@ def add_request_manager(request, ev=False):
 		no_valid_shift = False
 		if not future_request:
 			try:
-				sh_f = Shift_Sequence.objects.filter(user = profile).filter(start_date_time__gte = from_dt).filter(end_date_time__lte = to_dt)
-				print(sh_f.query)
+				sh_f = Shift_Sequence.objects.filter(Q(user = profile) & ((Q(start_date_time__gte = from_dt) & Q(end_date_time__lte = to_dt)) | (Q(start_date_time__lte = from_dt) & Q(end_date_time__gte = to_dt))))
+				#print(sh_f.query)
 				if len(sh_f) == 0:
 					no_valid_shift = True
 			except:
@@ -1017,7 +1061,9 @@ def add_request_manager(request, ev=False):
 			to_dt = to_dt.replace(hour = 4, minute = 30, second = 0)
 			while s_diff <= e_diff.days:
 				tmp_from_dt =  from_dt + timedelta(days = s_diff)
-				tmp_to_dt = to_dt + timedelta(days = s_diff)
+				tmp_to_dt = from_dt + timedelta(days = s_diff)
+				tmp_to_dt = tmp_to_dt.replace(hour = 4, minute = 30, second = 0)
+
 				event_obj = Shift_Exception(user = profile, event = eve_obj, start_date_time = tmp_from_dt, start_diff = 0, end_date_time = tmp_to_dt, end_diff = 0, approved=True, actioned_by = cuser, status = 1 )
 				event_obj.save()
 
@@ -1087,11 +1133,11 @@ def review_requests(request):
 		form_data['from'] = from_d
 		form_data['to'] = to_d
 
-		start_date = False
-		end_date = False
+		start_date = True
+		end_date = True
 
 		if len(from_d) < 1:
-			start_date = True
+			start_date = False
 
 		if len(to_d) < 1:
 			end_Date = False
@@ -1107,7 +1153,7 @@ def review_requests(request):
 			from_dt = tz.localize(from_dt)
 			to_dt = tz.localize(to_dt) + timedelta(days=1)
 
-			req = Shift_Exception.objects.filter(submitted_time__gte = from_dt.astimezone(pytz.UTC)).filter(submitted_time__lte = to_dt.astimezone(pytz.UTC)).exclude(event__group__name = 'Break').order_by('-submitted_time', 'start_date_time')
+			req = Shift_Exception.objects.filter(submitted_time__gte = from_dt.astimezone(pytz.UTC)).filter(submitted_time__lte = to_dt.astimezone(pytz.UTC)).exclude(event__group__name = 'Break')
 
 		else:
 			req = Shift_Exception.objects.exclude(event__group__name = 'Break').order_by('-submitted_time', 'start_date_time')
@@ -1128,7 +1174,11 @@ def review_requests(request):
 		if len(st_type) > 0:
 			req = req.filter(event__group__name = st_type)
 
-		req = req[:20]
+		if st_status != "pending":
+			req = req.order_by('-id', 'start_date_time')
+			req = req[:100]
+		else:
+			req = req.order_by('id', 'start_date_time')
 		results = []
 		for r in req:
 			values = []
@@ -1154,15 +1204,20 @@ def review_requests(request):
 
 			try:
 				notes = Shift_Exception_Note.objects.filter(shift_exception = r).order_by('-created_time')
-
 				for n in notes:
-					all_notes.append(datetime.strftime(n.created_time.astimezone(tz), "%c") + " by " + n.created_by.user.first_name + " " + n.created_by.user.last_name + ": " + n.note)
+					grop = n.created_by.user.groups.values_list('name', flat=True)
+					if "Admin" in grop:
+						all_notes.append(datetime.strftime(n.created_time.astimezone(tz), "%c") + " by WFM Admin: " + n.note)
+					else:
+						all_notes.append(datetime.strftime(n.created_time.astimezone(tz), "%c") + " by " + n.created_by.user.first_name + " " + n.created_by.user.last_name + ": " + n.note)
 
 				if len(notes) == 0:
 					all_notes.append("No Notes")
 
 			except Exception as e:
-				#print(e)
+				exc_type, exc_obj, exc_tb = sys.exc_info()
+				fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+				print(exc_type, fname, exc_tb.tb_lineno)
 				all_notes.append("No Notes")
 
 			#print(values)
@@ -1282,7 +1337,11 @@ def review_requests_agent(request):
 				notes = Shift_Exception_Note.objects.filter(shift_exception = r).order_by('-created_time')
 
 				for n in notes:
-					all_notes.append(datetime.strftime(n.created_time.astimezone(tz), "%c") + " by " + n.created_by.user.first_name + " " + n.created_by.user.last_name + ": " + n.note)
+					grop = n.created_by.user.groups.values_list('name', flat=True)
+					if "Admin" in grop:
+						all_notes.append(datetime.strftime(n.created_time.astimezone(tz), "%c") + " by WFM Admin: " + n.note)
+					else:
+						all_notes.append(datetime.strftime(n.created_time.astimezone(tz), "%c") + " by " + n.created_by.user.first_name + " " + n.created_by.user.last_name + ": " + n.note)
 
 				if len(notes) == 0:
 					all_notes.append("No Notes")
@@ -1308,7 +1367,7 @@ def agentBoard(request):
 def changeException(request):
 	if request.body:
 		data = json.loads(request.body)
-
+		print(data)
 		p = data['profile']
 		e = data['event']
 		t = data['title']
@@ -1427,7 +1486,7 @@ def scheduleOneonOne(request):
 		from_dt = tz.localize(from_dt)
 		to_dt = from_dt + timedelta(days=6)
 
-		agents = Profile.objects.filter(team_manager = request.user).order_by('user__first_name', 'user__last_name')
+		agents = Profile.objects.filter(team_manager = request.user).filter(user__is_active = True).order_by('user__first_name', 'user__last_name')
 		#print(len(agents))
 		for agent in agents:
 			a = {'id': agent.id, 'name': agent.user.first_name + " " + agent.user.last_name}

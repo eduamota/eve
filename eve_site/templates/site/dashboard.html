@@ -16,7 +16,7 @@
 {% block content %}
 {% load app_filters %}
 <div class="container">
-    {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}
+    {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" or request.user|has_group:"Agent" %}
     <div class="row">
         <div class="col s12">
             <div class="card horizontal">
@@ -29,9 +29,9 @@
                         <p>CS Ops Quality Assurance Call Form</p>
                     </div>
                     <div class="card-action">
-                        <a href="/quality/form/v2/Phone">Create a new phone form</a>
-                        <a href="/quality/form/v2/Email">Create a new email form</a>
-                        <a href="/quality/form/v2/Chat">Create a new chat form</a>
+                         {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/quality/form/v2/Phone">Create a new phone form</a>{% endif %}
+                         {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/quality/form/v2/Email">Create a new email form</a>{% endif %}
+                         {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/quality/form/v2/Chat">Create a new chat form</a>{% endif %}
                         <a href="/quality/form/v2/search/">Search a form</a>
                     </div>
                 </div>
