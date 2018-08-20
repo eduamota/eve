@@ -364,8 +364,13 @@ def formActionv2(request, form_n='Phone', form = -1):
 					form = f.id
 
 					for k, v in fields.items():
+						#fix to look up the key for comments based on section instead of id
 						key = str(k).replace("select", "").replace("comments", "").replace("input", "")
-						q = Question.objects.get(id = key)
+						q = None
+						if "input" in k:
+							q = Question.objects.get(section_id = key)
+						else:
+							q = Question.objects.get(id = key)
 						answer_q = Evaluation(field=str(k), value=str(v), question=q, form_overview = f)
 						answer_q.save()
 
