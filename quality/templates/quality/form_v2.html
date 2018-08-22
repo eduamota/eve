@@ -303,6 +303,15 @@
             
             <div class="row">
                 {% if not is_agent %}
+                
+                <div class="input-field col s1">
+                    <select id="selectStatus" name="selectStatus">
+                        <option value="draft" selected>Draft</option>
+                        <option value="final">Final</option>
+                    </select>
+                    <label>Form Status</label>
+                </div>
+                
                 <div class="col s2 input-field">
                     <button class="btn waves-effect waves-light" type="submit" name="action" value="submit">Submit<i class="material-icons right">send</i></button>
                 </div>

@@ -358,7 +358,12 @@ def formActionv2(request, form_n='Phone', form = -1):
 				try:
 					pattern = re.compile("^([\d]+)$")
 
-					f = Form_Overview(created_by = request.user.profile, score = overview['inputTotalScore'])
+					status = 0
+
+					if request.POST['selectStatus'] == 1:
+						status = 1
+
+					f = Form_Overview(created_by = request.user.profile, score = overview['inputTotalScore'], status = status)
 					f.save()
 
 					form = f.id
@@ -366,6 +371,8 @@ def formActionv2(request, form_n='Phone', form = -1):
 					for k, v in fields.items():
 						#fix to look up the key for comments based on section instead of id
 						key = str(k).replace("select", "").replace("comments", "").replace("input", "")
+						if key == "status":
+							continue
 						q = None
 						if "input" in k:
 							q = Question.objects.get(section_id = key)
@@ -525,6 +532,8 @@ def formSearchv2(request):
 		forms_list = []
 		if form_search:
 			for f_s in form_search:
+				if is_agent and f_s.form_overview.status == 0:
+					continue
 				if f_s.form_overview.id not in forms:
 					ev = Evaluation.objects.filter(form_overview = f_s.form_overview)[0]
 					qu = Question.objects.get(pk = ev.question.id)
@@ -552,6 +561,11 @@ def formSearchv2(request):
 							form_dict[f.form_overview.id][t][f.field] = l.name
 						else:
 							form_dict[f.form_overview.id][t][f.field] = f.value
+
+						status = "Draft"
+						if f.form_overview.status == 1:
+							status = "Final"
+						form_dict[f.form_overview.id][t]["status"] = status
 					if f_s.form_overview.id in forms:
 						forms_list.append(form_dict)
 

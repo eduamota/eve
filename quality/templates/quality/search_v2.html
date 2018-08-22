@@ -156,7 +156,8 @@
                             <th>Evaluator</th>
                             <th>Recording File</th>
                             <th>Score</th>
-                            <th>Action</th>
+                            <th>Status</th>
+                            <th>Action</th> 
                         </tr>
                     </thead>
                     <tbody>
@@ -174,6 +175,7 @@
                                     <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.selectEvalName}}</a></th>
                                     <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.inputRecordingFile}}</a></th>
                                     <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.inputTotalScore}}</a></th>
+                                    <th><a href="/quality/form/v2/{{t}}/{{id}}">{{values.status}}</a></th>
                                     <th>{% if request.user|has_group:"Admin" or request.user|has_group:"QA" %}  <a id="delete-{{id}}" class="btn-floating btn-tiny waves-effect waves-light modal-trigger " href="#modal-delete-{{id}}"><i class="material-icons">delete</i></a>{% endif %}</th>
                                 </tr>
                                 {% endfor %}

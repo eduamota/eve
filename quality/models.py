@@ -44,6 +44,7 @@ class Form_Overview(models.Model):
     created_time = models.DateTimeField(auto_now_add=True, blank=False)
     created_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
     score = models.DecimalField(max_digits=5, decimal_places=2)
+    status = models.DecimalField(max_digits=1, decimal_places=0)
 
     def __str__(self):
         return self.created_by.user.first_name + " " + self.created_by.user.last_name + " " + str(self.score)
