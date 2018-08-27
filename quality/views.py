@@ -12,8 +12,13 @@ from clients.models import Language
 from quality.models import Form, Section, Question, Evaluation, Response, Form_Overview, Form_Evaluation
 import sys
 from django.db.models import Q
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
+import os
+import csv
+from django.http import HttpResponse
+from wsgiref.util import FileWrapper
+
 # Create your views here.
 #@permission_required('polls.can_vote')
 @login_required()
@@ -375,7 +380,7 @@ def formActionv2(request, form_n='Phone', form = -1):
 							continue
 						q = None
 						if "input" in k:
-							q = Question.objects.get(section_id = key)
+							q = Question.objects.filter(section_id = key).filter(weight = 0.00)[0]
 						else:
 							q = Question.objects.get(id = key)
 						answer_q = Evaluation(field=str(k), value=str(v), question=q, form_overview = f)
@@ -394,17 +399,35 @@ def formActionv2(request, form_n='Phone', form = -1):
 			elif(int(form) > -1):
 
 				form_ov = Form_Overview.objects.get(pk = form)
+
+				status = 0
+				if request.POST['selectStatus'] == "1":
+					status = 1
+
+				form_ov.status = status
+				form_ov.save()
 				try:
 					for k, v in fields.items():
 						key = str(k).replace("select", "").replace("comments", "").replace("input", "")
-						q = Question.objects.get(id = key)
+						if key == "status":
+							continue
+						q = None
+						if "input" in key:
+							q = Question.objects.filter(section_id = key).filter(weight = 0.00)[0]
+						else:
+							q = Question.objects.get(id = key)
+
 						try:
 							answer_q = Evaluation.objects.get(field=str(k), form_overview = form)
 							answer_q.value = v
 							answer_q.question = q
 							answer_q.save()
 						except:
-							q = Question.objects.get(id = key)
+							if "input" in k:
+								q = Question.objects.filter(section_id = key).filter(weight = 0.00)[0]
+							else:
+								q = Question.objects.get(id = key)
+
 							answer_q = Evaluation(field=str(k), value=str(v), question=q, form_overview = form_ov)
 							answer_q.save()
 
@@ -452,7 +475,7 @@ def formActionv2(request, form_n='Phone', form = -1):
 		#print(fields)
 
 	c.close()
-	print(fields)
+	#print(fields)
 	return render(request, 'quality/form_v2.html', {'errors': errors, 'agents': agents, 'languages': languages, 'supervisor': supervisor, 'messages': messages, 'fields':fields, 'overview':overview, 'form':form_render, 'service':service, 'form_id':form, 'is_agent':is_agent, 'form_type': form_n})
 
 @login_required()
@@ -575,3 +598,64 @@ def formSearchv2(request):
 
 
 	return render(request, "quality/search_v2.html", {'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
+
+@login_required()
+def requestData(request):
+
+	errors = {}
+
+	if request.POST:
+
+		if len(request.POST['calendarDateEvalFrom']) == 0:
+			errors['dateEvalFrom'] = "Date of From Evaluation is required"
+
+		if len(request.POST['calendarDateEvalTo']) == 0:
+			errors['dateEvalTo'] = "Date of To Evaluation is required"
+
+		if errors:
+			return render(request, "quality/get_data.html", {"errors": errors,})
+
+		start_time = datetime.strptime(request.POST['calendarDateEvalFrom'], "%Y-%m-%d")
+		end_time = datetime.strptime(request.POST['calendarDateEvalTo'], "%Y-%m-%d")
+		#today = pytz.utc.localize(today)
+
+		timezone = request.user.profile.location.iso_name
+
+		tz = pytz.timezone(timezone)
+
+		start_t = start_time
+		end_t = end_time
+
+		start_format = start_t.strftime("%Y-%m-%d %H:%M:%S")
+		end_format = end_t.strftime("%Y-%m-%d %H:%M:%S")
+
+		query = "SELECT qfo.id, au.first_name, au.last_name, CONVERT_TZ(qfo.created_time, 'UTC', '{}'), qfo.score, qq.question, qe.value, qq.weight FROM quality_form_overview qfo INNER JOIN utils_profile up on qfo.created_by_id = up.id INNER JOIN auth_user au on up.user_id = au.id INNER JOIN quality_evaluation qe on qe.form_overview_id = qfo.id INNER JOIN quality_question qq on qq.id = qe.question_id WHERE qfo.created_time between '{}' and '{}' ORDER BY qfo.id, qq.section_id, qq.`order`".format(timezone, start_format, end_format)
+
+		with connection.cursor() as cur:
+			cur.execute(query)
+			overviews = cur.fetchall()
+
+		start_format = start_t.strftime("%Y%m%d%H%M%S")
+		end_format = end_t.strftime("%Y%m%d%H%M%S")
+
+		f_name = "quality{}.csv".format(start_format+end_format,)
+
+		file_name = os.path.join(os.path.realpath(""), "eve_site")
+		file_name = os.path.join(file_name, "tmp")
+		file_name = os.path.join(file_name, f_name)
+
+		print(file_name)
+
+		with open(file_name, 'wb') as f:
+			writer = csv.writer(f)
+			writer.writerow(["form_id", "agent_first_name", "agent_last_name", "evaluation_date", "score", "question", "value", "weight"])
+			writer.writerows(overviews)
+
+		filename = file_name # Select your file here.
+		wrapper = FileWrapper(file(filename))
+		response = HttpResponse(wrapper, content_type='text/plain')
+		response['Content-Length'] = os.path.getsize(filename)
+		response['Content-Disposition'] = 'attachment; filename={}'.format(f_name,)
+		return response
+
+	return render(request, "quality/get_data.html", {"errors": errors,})

@@ -32,6 +32,7 @@
                          {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/quality/form/v2/Phone">Create a new phone form</a>{% endif %}
                          {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/quality/form/v2/Email">Create a new email form</a>{% endif %}
                          {% if request.user|has_group:"Supervisor" or request.user|has_group:"TeamLead" or request.user|has_group:"Admin" %}<a href="/quality/form/v2/Chat">Create a new chat form</a>{% endif %}
+                        {% if request.user|has_group:"QA" or request.user|has_group:"Admin" %}<a href="/quality/form/v2/getData">Download data</a>{% endif %}
                         <a href="/quality/form/v2/search/">Search a form</a>
                     </div>
                 </div>

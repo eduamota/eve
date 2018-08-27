@@ -1,0 +1,153 @@
+{% extends 'site/base.html' %}
+
+{% block title %}Quality{% endblock %}
+   
+    {% block head_css_section %}
+    {% endblock head_css_section %}
+
+    {% block head_css_page %}
+        <style>
+             .error {color: #FF0000;}
+             
+             .pinned {width: 70%; padding-left: 80px}
+        </style>
+    {% endblock head_css_page %}
+{% block pagetitle %}Search Quality Call Assurance{% endblock pagetitle %}
+
+{% block head_js %}
+ 
+{% endblock head_js %}
+{% load app_filters %}
+{% block content %}
+    {% if errors %}
+        
+        {% for field, value in errors.items %}
+            <script>Materialize.toast('{{value}}', 4000, 'red');</script>
+        {% endfor %}
+        
+    {% endif %}
+
+    {% if messages %}
+        {% for message in messages %}
+            <script>Materialize.toast('{{message}}', 4000, 'green');</script>
+        {% endfor %}
+    {% endif %}
+
+    <div class="container">
+        
+        <form method="post" action="" id='search-requests'>
+            {% csrf_token %}
+            <div class="blockPinned">
+  
+            <div class="grey lighten-2">
+                
+            <div class="row">
+                <div class="input-field col s3">
+                    <input id="calendarDateEvalFrom" name="calendarDateEvalFrom" type="text" class="datepicker">
+                    <label for="calendarDateEvalFrom">Date of Evaluation From</label>
+                </div>
+                <div class="input-field col s3">
+                    <input id="calendarDateEvalTo" name="calendarDateEvalTo" type="text" class="datepicker">
+                    <label for="calendarDateEvalTo">Date of Evaluation To</label>
+                </div>
+            
+            </div>
+                
+            </div>
+            </div>
+
+            <div class="row">
+                <br>
+                <div class="col s2 input-field">
+                    <button class="btn waves-effect waves-light" type="submit" name="action" value="submit">Download<i class="material-icons right">send</i></button>
+                </div>
+                
+                <div class="col s2 input-field">
+                    <input class="btn waves-effect waves-light" type="button" name="clear" value="Clear" onClick="newDoc()">
+                </div>
+                
+            </div>
+            
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>   
+        </form>
+    
+    </div>
+    
+
+    {% load static %}
+    <script src="{% static "js/pagination.js" %}"></script>
+    <script>
+        
+         
+        function newDoc() {
+            window.location = window.location.href;
+        }
+        
+        $(document).ready(function() {
+            
+            
+            
+            $('select').material_select();    
+            
+            $('#calendarDateEvalFrom').pickadate({
+                selectMonths: true, // Creates a dropdown to control month
+                selectYears: 15, // Creates a dropdown of 15 years to control year,
+                today: 'Today',
+                clear: 'Clear',
+                close: 'Ok',
+                closeOnSelect: true, // Close upon selecting a date,
+                format: 'yyyy-mm-dd', 
+                dateFormat: 'yyyy-mm-dd',
+                formatSubmit: 'yyyy-mm-dd',
+              });
+            
+            $('#calendarDateEvalTo').pickadate({
+                selectMonths: true, // Creates a dropdown to control month
+                selectYears: 15, // Creates a dropdown of 15 years to control year,
+                today: 'Today',
+                clear: 'Clear',
+                close: 'Ok',
+                closeOnSelect: true, // Close upon selecting a date,
+                format: 'yyyy-mm-dd', 
+                dateFormat: 'yyyy-mm-dd',
+                formatSubmit: 'yyyy-mm-dd',
+              });
+            
+            $('.modal').modal();
+            
+        
+            
+        {% if fields %}
+            {% for field, value in fields.items %}
+                {% if "select" in field %}
+                    $('#{{field}}').val('{{value}}').trigger('change');
+                    $('#{{field}}').material_select(); 
+                 {% else %}
+                    $('#{{field}}').val('{{value}}');
+                 {% endif %}
+            {% endfor %}
+        
+        
+        {% endif %}
+        
+
+            
+            });
+             
+              
+             
+            
+    </script>
+{% endblock content %}
+    
