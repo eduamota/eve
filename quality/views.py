@@ -365,7 +365,7 @@ def formActionv2(request, form_n='Phone', form = -1):
 
 					status = 0
 
-					if request.POST['selectStatus'] == 1:
+					if str(request.POST['selectStatus']) == "1":
 						status = 1
 
 					f = Form_Overview(created_by = request.user.profile, score = overview['inputTotalScore'], status = status)
@@ -401,7 +401,7 @@ def formActionv2(request, form_n='Phone', form = -1):
 				form_ov = Form_Overview.objects.get(pk = form)
 
 				status = 0
-				if request.POST['selectStatus'] == "1":
+				if str(request.POST['selectStatus']) == "1":
 					status = 1
 
 				form_ov.status = status
