@@ -8,6 +8,17 @@ from quality.models import *
 from rest_framework import viewsets
 from django.contrib.auth.models import User
 from .serializers import *
+from django_filters import rest_framework as filters
+
+class Shift_ExceptionFilter(filters.FilterSet):
+    start_gte = filters.DateTimeFilter(field_name="start_date_time", lookup_expr='gte')
+    start_lte = filters.DateTimeFilter(field_name="start_date_time", lookup_expr='lte')
+    end_gte = filters.DateTimeFilter(field_name="end_date_time", lookup_expr='gte')
+    end_lte = filters.DateTimeFilter(field_name="end_date_time", lookup_expr='lte')
+
+    class Meta:
+        model = Shift_Exception
+        fields = ['event', 'status', 'start_date_time', 'end_date_time', 'user']
 
 
 class Shift_ExceptionViewSet(viewsets.ModelViewSet):
@@ -16,6 +27,9 @@ class Shift_ExceptionViewSet(viewsets.ModelViewSet):
     """
     queryset = Shift_Exception.objects.all()
     serializer_class = Shift_ExceptionSerializer
+    filter_backends = (filters.DjangoFilterBackend,)
+    #filter_fields = ['event',]
+    filter_class = Shift_ExceptionFilter
 
     #def partial_update(self, instance, validated_data):
     def perform_update(self, serializer):

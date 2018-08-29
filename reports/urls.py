@@ -4,5 +4,6 @@ from django.conf.urls import url
 from reports import views
 
 urlpatterns = [
-	url(r'^reports/gap_analysis$', views.gap_analysis),
+	url(r'^gap_analysis/$', views.gap_analysis),
+	url(r'^get_heatmap_data/$', views.get_heatmap_data),
 ]
