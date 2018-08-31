@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from .serializers import *
 from django_filters import rest_framework as filters
 
+
 class Shift_ExceptionFilter(filters.FilterSet):
     start_gte = filters.DateTimeFilter(field_name="start_date_time", lookup_expr='gte')
     start_lte = filters.DateTimeFilter(field_name="start_date_time", lookup_expr='lte')
