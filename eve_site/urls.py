@@ -63,4 +63,5 @@ urlpatterns = [
 	url(r'^$', views.home_page, name="home_page"),
     url(r'^accounts/password/$', views.change_password, name='change_password'),
     url(r'^reports/', include('reports.urls')),
+    url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]
