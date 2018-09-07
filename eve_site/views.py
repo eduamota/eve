@@ -36,12 +36,12 @@ request_actions = {"/wfm/request/Timeoff":"Request Time Off",
 
 # Create your views here.
 class MethodRequest(Request):
-  def __init__(self, *args, **kwargs):
-	self._method = kwargs.pop('method', None)
-	Request.__init__(self, *args, **kwargs)
+	def __init__(self, *args, **kwargs):
+		self._method = kwargs.pop('method', None)
+		Request.__init__(self, *args, **kwargs)
 
-  def get_method(self):
-	return self._method if self._method else super(RequestWithMethod, self).get_method()
+	def get_method(self):
+		return self._method if self._method else super(RequestWithMethod, self).get_method()
 
 from django import template
 from django.contrib.auth.models import Group

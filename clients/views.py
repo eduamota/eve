@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.shortcuts import render
-from models import Client, Client_Info, Comment
+from .models import Client, Client_Info, Comment
 from django.views.generic.edit import CreateView, UpdateView
 from .forms import ClientForm, AddComment
 from django.contrib.auth.decorators import login_required

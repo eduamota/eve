@@ -220,7 +220,7 @@ def getShifts(request):
 		date_e = e.start_date_time.astimezone(tzo).strftime("%Y-%m-%d")
 		ev = {"title": e.event.name, "start":e.start_date_time.astimezone(tzo).strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.astimezone(tzo).strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk}
 
-		if not(events.has_key(date_e)):
+		if date_e not in events:
 			events[date_e] = []
 		events[date_e].append(ev)
 
@@ -339,7 +339,7 @@ def getAllExceptions(request):
 		event_user = e.event.name + " " + e.user.user.first_name + " " + e.user.user.last_name
 		ev = {"title": event_user, "start":e.start_date_time.astimezone(tzo).strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.astimezone(tzo).strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk}
 
-		if not(events.has_key(date_e)):
+		if date_e not in events:
 			events[date_e] = []
 		events[date_e].append(ev)
 
@@ -413,7 +413,7 @@ def getTeamShifts(request):
 			date_e = e.start_date_time.astimezone(tz).strftime("%Y-%m-%d")
 			ev = {"title": e.event.name, "start":e.start_date_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), "color":e.event.color, "textColor":e.event.text_color, "id":e.pk, "resourceId": str(profile.user.pk)}
 
-			if not(events.has_key(date_e)):
+			if date_e not in events:
 				events[date_e] = []
 			events[date_e].append(ev)
 
@@ -491,7 +491,7 @@ def getGeneralTeamShifts(request):
 			date_e = e.start_date_time.astimezone(tz).strftime("%Y-%m-%d")
 			ev = {"title": "Unavailable", "start":e.start_date_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), "end":e.end_date_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), "color":"#a9abad", "textColor":"#000", "id":e.pk, "resourceId": str(profile.user.pk)}
 
-			if not(events.has_key(date_e)):
+			if date_e not in events:
 				events[date_e] = []
 			events[date_e].append(ev)
 

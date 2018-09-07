@@ -660,7 +660,7 @@ def saveBreaks(sDate, eDate, cUser, aUser):
 			bestTimeBreak1_end = bestTimeBreak1 + timedelta(minutes=duration_Break1)
 			start_dif = (business_day - bestTimeBreak1).days
 			end_dif = (business_day - bestTimeBreak1_end).days
-	 		try:
+			try:
 				s_ex = Shift_Exception(user = profile, shift_sequence = s, event = ev_b, start_date_time = bestTimeBreak1, start_diff = start_dif, end_date_time = bestTimeBreak1_end, end_diff = end_dif, actioned_by = auser, status = 1)
 				s_ex.save()
 				print(s_ex)

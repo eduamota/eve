@@ -9,7 +9,7 @@ Created on Mon Sep 18 14:28:07 2017
 
 from django.conf.urls import url
 from clients import views
-from views import ClientCreate, ClientUpdate
+from .views import ClientCreate, ClientUpdate
 from django.contrib.auth.decorators import login_required
 
 urlpatterns = [

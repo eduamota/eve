@@ -15,12 +15,13 @@ from django.contrib.auth.decorators import user_passes_test
 
 # Create your views here.
 class MethodRequest(Request):
-  def __init__(self, *args, **kwargs):
-	self._method = kwargs.pop('method', None)
-	Request.__init__(self, *args, **kwargs)
+	def __init__(self, *args, **kwargs):
+		self._method = kwargs.pop('method', None)
+		Request.__init__(self, *args, **kwargs)
 
-  def get_method(self):
-	return self._method if self._method else super(RequestWithMethod, self).get_method()
+	def get_method(self):
+		return self._method if self._method else super(RequestWithMethod, self).get_method()
+
 
 
 def callAPI(met, url, data = False):
@@ -136,7 +137,7 @@ def queues(request, queueid = False):
 	messages = {}
 	c = connection.cursor()
 	if request.POST:
-			print request.POST
+			
 			status = ""
 			results = {"status": "error"}
 			if "agentQueueGroup" in request.POST and len(request.POST['reasonChange']) > 0:

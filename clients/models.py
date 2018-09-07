@@ -42,7 +42,7 @@ class Comment(models.Model):
 	change_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
 class Client_Info(models.Model):
-	client = models.OneToOneField(Client)
+	client = models.OneToOneField(Client, on_delete=models.CASCADE)
 	payments = models.IntegerField(blank=True, null=True)
 	branded = models.BooleanField()
 	hw_support_t1 = models.BooleanField()

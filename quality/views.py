@@ -128,7 +128,7 @@ def formAction(request, form = -1):
 					#send error back that there was an issue
 					errors['general'] = "Error unable to save form"
 	elif int(form) > -1:
-		print form
+		#print(form)
 		c.execute("SELECT * FROM ops_system.quality_responses where form_id = %s", [form,])
 		results = c.fetchall()
 
@@ -139,7 +139,7 @@ def formAction(request, form = -1):
 				if row[2] == 'evalName':
 					c.execute("SELECT id, concat(first_name, ' ', last_name) as name FROM ops_system.otrs_user where id = %s", [row[3],])
 					sup = c.fetchone()
-					print sup
+					#print(sup)
 					supervisor[sup[0]] = sup[1]
 
 				dropdowns[row[2]] = row[3]
@@ -217,7 +217,7 @@ def formSearch(request):
 			forms[result[0]] = result
 
 		c.close()
-		print forms
+		#print(forms)
 		return render(request, "quality/search.html", {"results":forms, 'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
 
 	return render(request, "quality/search.html", {'agents': agents, 'languages': languages, 'supervisors': supervisors, 'messages': messages, 'fields':fields, 'dropdowns':dropdowns})
@@ -560,7 +560,7 @@ def formSearchv2(request):
 				if f_s.form_overview.id not in forms:
 					ev = Evaluation.objects.filter(form_overview = f_s.form_overview)[0]
 					qu = Question.objects.get(pk = ev.question.id)
- 					se = Section.objects.get(pk = qu.section.id)
+					se = Section.objects.get(pk = qu.section.id)
 					fo = Form.objects.get(pk = se.form.id)
 					t = fo.name
 					t = t.replace("-Form", "")
