@@ -43,8 +43,8 @@ class NewVisitorTest(unittest.TestCase):
 			pwd = self.browser.find_element_by_id("id_password")
 			sub = self.browser.find_element_by_class_name("btn-primary")
 			
-			username.send_keys("emota")
-			pwd.send_keys("L!$e)&abby12")
+			username.send_keys("")
+			pwd.send_keys("")
 			sub.send_keys(Keys.ENTER)
 
 		time.sleep(1)
@@ -63,8 +63,8 @@ class NewVisitorTest(unittest.TestCase):
 			pwd = self.browser.find_element_by_id("id_password")
 			sub = self.browser.find_element_by_class_name("btn-primary")
 			
-			username.send_keys("emota")
-			pwd.send_keys("L!$e)&abby12")
+			username.send_keys("")
+			pwd.send_keys("")
 			sub.send_keys(Keys.ENTER)
 
 		time.sleep(1)
