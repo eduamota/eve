@@ -122,8 +122,8 @@ def test_agent_dashboard(request):
 def get_locations(request, timep = "current"):
 
 	conn = mysql.connector.connect(host="localhost",	# your host, usually localhost
-					 user='emota',		 # your username
-					 passwd='L!$e)&abby12',  # your password
+					 user='',		 # your username
+					 passwd='',  # your password
 					 db="ops_system")		# name of the data base
 
 	query = "Select replace(caller_id_number, '-', '') as caller_id_number from `call` where status = 'waiting' union all select replace(caller_id_num, '-', '') as caller_id_number from `agent_status` where duration is null and `state` = 'connected' and start_time >= DATE_SUB(NOW(),INTERVAL 2 HOUR) and caller_id_num != 'Unavailable'"
